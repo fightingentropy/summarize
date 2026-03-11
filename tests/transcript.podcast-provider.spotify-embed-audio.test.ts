@@ -5,7 +5,7 @@ async function importPodcastProvider() {
 
   const longTranscript = "hello from spotify ".repeat(20).trim();
 
-  vi.doMock("../packages/core/src/transcription/whisper.js", () => ({
+  vi.doMock("../src/transcription/whisper.js", () => ({
     MAX_OPENAI_UPLOAD_BYTES: 1024 * 1024,
     isFfmpegAvailable: () => Promise.resolve(true),
     isWhisperCppReady: () => Promise.resolve(false),
@@ -25,7 +25,7 @@ async function importPodcastProvider() {
     })),
   }));
 
-  return await import("../packages/core/src/content/transcript/providers/podcast.js");
+  return await import("../src/content/transcript/providers/podcast.js");
 }
 
 const baseOptions = {

@@ -1,5 +1,5 @@
-import { isOpenRouterBaseUrl, resolveConfiguredBaseUrl } from "summarize-core";
 import type { CliProvider, SummarizeConfig } from "../config.js";
+import { isOpenRouterBaseUrl, resolveConfiguredBaseUrl } from "../openai/base-url.js";
 import { resolveCliAvailability, resolveExecutableInPath } from "./env.js";
 
 export type EnvState = {

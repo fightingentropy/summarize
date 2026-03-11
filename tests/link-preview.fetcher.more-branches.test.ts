@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   fetchHtmlDocument,
   fetchWithWebsiteScraper,
-} from "../packages/core/src/content/link-preview/content/fetcher.js";
+} from "../src/content/link-preview/content/fetcher.js";
 
 describe("link preview fetcher - more branches", () => {
   it("stops reading YouTube watch HTML once the head contains a player payload", async () => {

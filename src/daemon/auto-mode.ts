@@ -1,4 +1,4 @@
-import { shouldPreferUrlMode } from "summarize-core/content/url";
+import { shouldPreferUrlMode } from "../content/url.js";
 
 export type DaemonRequestedMode = "auto" | "page" | "url";
 

@@ -23,28 +23,28 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: /^summarize-core\/content$/,
-        replacement: resolve(rootDir, "packages/core/src/content/index.ts"),
+        find: /^summify\/content$/,
+        replacement: resolve(rootDir, "src/content/index.ts"),
       },
       {
-        find: /^summarize-core\/content\/url$/,
-        replacement: resolve(rootDir, "packages/core/src/content/url.ts"),
+        find: /^summify\/content\/url$/,
+        replacement: resolve(rootDir, "src/content/url.ts"),
       },
       {
-        find: /^summarize-core\/prompts$/,
-        replacement: resolve(rootDir, "packages/core/src/prompts/index.ts"),
+        find: /^summify\/prompts$/,
+        replacement: resolve(rootDir, "src/prompts/index.ts"),
       },
       {
-        find: /^summarize-core\/language$/,
-        replacement: resolve(rootDir, "packages/core/src/language.ts"),
+        find: /^summify\/language$/,
+        replacement: resolve(rootDir, "src/language.ts"),
       },
       {
-        find: /^summarize-core\/processes$/,
-        replacement: resolve(rootDir, "packages/core/src/processes.ts"),
+        find: /^summify\/processes$/,
+        replacement: resolve(rootDir, "src/processes.ts"),
       },
       {
-        find: /^summarize-core$/,
-        replacement: resolve(rootDir, "packages/core/src/index.ts"),
+        find: /^summify$/,
+        replacement: resolve(rootDir, "src/index.ts"),
       },
     ],
   },

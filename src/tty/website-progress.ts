@@ -1,4 +1,4 @@
-import type { LinkPreviewProgressEvent } from "summarize-core/content";
+import type { LinkPreviewProgressEvent } from "../content/index.js";
 import { formatBytes } from "./format.js";
 import type { OscProgressController } from "./osc-progress.js";
 import { createFetchHtmlProgressRenderer } from "./progress/fetch-html.js";

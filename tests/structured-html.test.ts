@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { prepareHtmlForStructuredParsing } from "../packages/core/src/content/link-preview/content/structured-html.js";
+import { prepareHtmlForStructuredParsing } from "../src/content/link-preview/content/structured-html.js";
 
 describe("prepareHtmlForStructuredParsing", () => {
   it("keeps jsonld and video/embed markers while stripping inert blocks", () => {

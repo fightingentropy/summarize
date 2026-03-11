@@ -9,7 +9,6 @@ Ship is **not done** until:
 ## Version sources (keep in sync)
 
 - `package.json` `version`
-- `packages/core/package.json` `version` (lockstep with CLI)
 - `src/version.ts` `FALLBACK_VERSION` (needed for the Bun-compiled binary; it can’t read `package.json`)
 
 ## Fast path (recommended)
@@ -21,7 +20,6 @@ Ship is **not done** until:
 1. Bump version + notes
    - Update version in:
      - `package.json`
-     - `packages/core/package.json`
      - `src/version.ts` (`FALLBACK_VERSION`)
    - Update `CHANGELOG.md` (set the date + bullet notes under the new version header)
 
@@ -86,18 +84,15 @@ Ship is **not done** until:
    - If npm asks for OTP:
      - `npm_config_auth_type=legacy bun publish --tag latest --access public --otp <otp>`
    - Otherwise:
-     - Publish core first, then CLI:
-       - `cd packages/core && bun publish --tag latest --access public`
-       - `bun publish --tag latest --access public`
+     - `bun publish --tag latest --access public`
    - If the CLI forces browser auth, prefer the legacy path above by sourcing `~/.profile`
      (must include `NODE_AUTH_TOKEN`) before running the publish command.
    - Smoke:
      ```bash
      ver="$(node -p 'require(\"./package.json\").version')"
-     npm view summarize version
-     npm view summarize-core version
-     bunx summarize@"${ver}" --version
-     bunx summarize@"${ver}" --help >/dev/null
+     npm view summify version
+     bunx summify@"${ver}" --version
+     bunx summify@"${ver}" --help >/dev/null
      ```
 
 ## npm (npmjs)

@@ -4,7 +4,7 @@ import {
   jsonTranscriptToSegments,
   vttToPlainText,
   vttToSegments,
-} from "../packages/core/src/content/transcript/parse.js";
+} from "../src/content/transcript/parse.js";
 
 describe("transcript parsing branches", () => {
   it("skips note/style blocks and ignores cues without valid starts", () => {

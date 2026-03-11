@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   resolvePreferredOnnxModel,
   transcribeWithOnnxCliFile,
-} from "../packages/core/src/transcription/onnx-cli.js";
+} from "../src/transcription/onnx-cli.js";
 
 const originalEnv = { ...process.env };
 

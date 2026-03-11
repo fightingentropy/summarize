@@ -7,7 +7,7 @@ import {
   type ExtractedLinkContent,
   type FetchLinkContentOptions,
   type LinkPreviewProfileEvent,
-} from "../packages/core/src/content/index.js";
+} from "../src/content/index.js";
 
 type CliOptions = {
   input: string;

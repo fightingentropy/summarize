@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import type { TranscriptCache } from "../packages/core/src/content/cache/types.js";
-import {
-  readTranscriptCache,
-  writeTranscriptCache,
-} from "../packages/core/src/content/transcript/cache.js";
+import type { TranscriptCache } from "../src/content/cache/types.js";
+import { readTranscriptCache, writeTranscriptCache } from "../src/content/transcript/cache.js";
 
 describe("transcript cache with file modification time", () => {
   it("includes fileMtime when reading transcript cache", async () => {

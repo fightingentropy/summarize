@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => ({
   })),
 }));
 
-vi.mock("../packages/core/src/content/transcript/index.js", () => ({
+vi.mock("../src/content/transcript/index.js", () => ({
   resolveTranscriptForLink: mocks.resolveTranscriptForLink,
 }));
 

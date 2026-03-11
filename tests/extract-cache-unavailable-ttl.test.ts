@@ -2,11 +2,11 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { NEGATIVE_TTL_MS } from "../packages/core/src/content/index.js";
 import { createCacheStore, type CacheStore } from "../src/cache.js";
+import { NEGATIVE_TTL_MS } from "../src/content/index.js";
 
 /**
- * Regression test for https://github.com/erlinhoxha/summarize/issues/114
+ * Regression test for https://github.com/erlinhoxha/summify/issues/114
  *
  * When the transcript source is "unavailable" (e.g. Apify timeout), the
  * extract cache entry must use a short TTL (NEGATIVE_TTL_MS) instead of

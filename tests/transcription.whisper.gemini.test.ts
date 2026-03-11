@@ -37,8 +37,7 @@ describe("transcription/whisper gemini", () => {
     });
 
     vi.stubGlobal("fetch", fetchMock);
-    const { transcribeMediaWithWhisper } =
-      await import("../packages/core/src/transcription/whisper.js");
+    const { transcribeMediaWithWhisper } = await import("../src/transcription/whisper.js");
     const result = await transcribeMediaWithWhisper({
       bytes: new Uint8Array([1, 2, 3]),
       mediaType: "audio/mpeg",
@@ -72,8 +71,7 @@ describe("transcription/whisper gemini", () => {
     });
 
     vi.stubGlobal("fetch", fetchMock);
-    const { transcribeMediaWithWhisper } =
-      await import("../packages/core/src/transcription/whisper.js");
+    const { transcribeMediaWithWhisper } = await import("../src/transcription/whisper.js");
     const result = await transcribeMediaWithWhisper({
       bytes: new Uint8Array([1, 2, 3]),
       mediaType: "audio/mpeg",
@@ -148,8 +146,7 @@ describe("transcription/whisper gemini", () => {
 
     try {
       vi.stubGlobal("fetch", fetchMock);
-      const { transcribeMediaFileWithWhisper } =
-        await import("../packages/core/src/transcription/whisper.js");
+      const { transcribeMediaFileWithWhisper } = await import("../src/transcription/whisper.js");
       const result = await transcribeMediaFileWithWhisper({
         filePath: audioPath,
         mediaType: "audio/mpeg",

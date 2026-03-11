@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { ProcessHandle, ProcessObserver, ProcessRegistration } from "summarize-core/processes";
+import type { ProcessHandle, ProcessObserver, ProcessRegistration } from "../processes.js";
 
 type ProcessStatus = "running" | "exited" | "error";
 

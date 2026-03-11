@@ -20,7 +20,7 @@ vi.mock("node:fs", () => ({
 }));
 vi.mock("@fal-ai/client", () => falMock);
 
-import { fetchTranscriptWithYtDlp } from "../packages/core/src/content/transcript/providers/youtube/yt-dlp.js";
+import { fetchTranscriptWithYtDlp } from "../src/content/transcript/providers/youtube/yt-dlp.js";
 
 const mockSpawnSuccess = () => {
   spawnMock.mockImplementation(() => {

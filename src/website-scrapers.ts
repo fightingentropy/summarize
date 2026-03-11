@@ -1,4 +1,4 @@
-import type { WebsiteScrapeResult, ScrapeWebsite } from "summarize-core/content";
+import type { WebsiteScrapeResult, ScrapeWebsite } from "./content/index.js";
 import { createFirecrawlScraper } from "./firecrawl.js";
 
 type ExaContentsResponse = {

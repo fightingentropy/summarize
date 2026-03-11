@@ -5,12 +5,12 @@ const whisperMock = vi.hoisted(() => ({
   resolveWhisperCppModelNameForDisplay: vi.fn(),
 }));
 
-vi.mock("../packages/core/src/transcription/whisper.js", () => whisperMock);
+vi.mock("../src/transcription/whisper.js", () => whisperMock);
 
 import {
   buildMissingTranscriptionProviderResult,
   resolveTranscriptProviderCapabilities,
-} from "../packages/core/src/content/transcript/providers/transcription-capability.js";
+} from "../src/content/transcript/providers/transcription-capability.js";
 
 describe("transcription provider capabilities", () => {
   it("reports missing providers and yt-dlp fallback as unavailable", async () => {

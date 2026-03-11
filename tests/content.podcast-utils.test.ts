@@ -4,7 +4,7 @@ import {
   extractSpotifyEpisodeId,
   isPodcastHost,
   isPodcastLikeJsonLdType,
-} from "../packages/core/src/content/link-preview/content/podcast-utils.js";
+} from "../src/content/link-preview/content/podcast-utils.js";
 
 describe("podcast utils", () => {
   it("extracts spotify episode ids only from valid spotify urls", () => {

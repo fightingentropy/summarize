@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   extractReadabilityFromHtml,
   toReadabilityHtml,
-} from "../packages/core/src/content/link-preview/content/readability.js";
+} from "../src/content/link-preview/content/readability.js";
 
 describe("readability helpers", () => {
   it("returns null for unreadable html and import-safe failures", async () => {

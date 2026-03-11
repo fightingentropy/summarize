@@ -4,7 +4,7 @@ import {
   createLinkPreviewClient,
   type FetchLinkContentOptions,
   type LinkPreviewProfileEvent,
-} from "../packages/core/src/content/index.js";
+} from "../src/content/index.js";
 
 type PerfScenario = {
   name: string;

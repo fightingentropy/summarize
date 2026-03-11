@@ -1,5 +1,4 @@
 import { countTokens } from "gpt-tokenizer";
-import { isTwitterStatusUrl, isYouTubeUrl } from "summarize-core/content/url";
 import {
   buildLanguageKey,
   buildLengthKey,
@@ -8,6 +7,7 @@ import {
   buildSummaryCacheKey,
 } from "../../../cache.js";
 import type { ExtractedLinkContent } from "../../../content/index.js";
+import { isTwitterStatusUrl, isYouTubeUrl } from "../../../content/url.js";
 import type { Prompt } from "../../../llm/prompt.js";
 import { buildAutoModelAttempts } from "../../../model-auto.js";
 import { SUMMARY_SYSTEM_PROMPT } from "../../../prompts/index.js";

@@ -15,7 +15,7 @@ describe("transcription/whisper local whisper.cpp", () => {
     vi.stubEnv("SUMMARIZE_WHISPER_CPP_MODEL_PATH", baseEn);
 
     const { resolveWhisperCppModelNameForDisplay } =
-      await import("../packages/core/src/transcription/whisper.js");
+      await import("../src/transcription/whisper.js");
     await expect(resolveWhisperCppModelNameForDisplay()).resolves.toBe("base");
   });
 
@@ -64,8 +64,7 @@ describe("transcription/whisper local whisper.cpp", () => {
       },
     }));
 
-    const { transcribeMediaWithWhisper } =
-      await import("../packages/core/src/transcription/whisper.js");
+    const { transcribeMediaWithWhisper } = await import("../src/transcription/whisper.js");
     const result = await transcribeMediaWithWhisper({
       bytes: new Uint8Array([1, 2, 3]),
       mediaType: "audio/mpeg",
@@ -132,8 +131,7 @@ describe("transcription/whisper local whisper.cpp", () => {
       },
     }));
 
-    const { transcribeMediaWithWhisper } =
-      await import("../packages/core/src/transcription/whisper.js");
+    const { transcribeMediaWithWhisper } = await import("../src/transcription/whisper.js");
     const result = await transcribeMediaWithWhisper({
       bytes: new Uint8Array([1, 2, 3]),
       mediaType,
@@ -196,8 +194,7 @@ describe("transcription/whisper local whisper.cpp", () => {
       },
     }));
 
-    const { transcribeMediaFileWithWhisper } =
-      await import("../packages/core/src/transcription/whisper.js");
+    const { transcribeMediaFileWithWhisper } = await import("../src/transcription/whisper.js");
     const progress = vi.fn();
     const result = await transcribeMediaFileWithWhisper({
       filePath: audioPath,
@@ -274,8 +271,7 @@ describe("transcription/whisper local whisper.cpp", () => {
         },
       }));
 
-      const { transcribeMediaWithWhisper } =
-        await import("../packages/core/src/transcription/whisper.js");
+      const { transcribeMediaWithWhisper } = await import("../src/transcription/whisper.js");
       const result = await transcribeMediaWithWhisper({
         bytes: new Uint8Array([1, 2, 3]),
         mediaType: "audio/mpeg",
@@ -317,8 +313,7 @@ describe("transcription/whisper local whisper.cpp", () => {
 
     vi.doMock("node:child_process", () => ({ spawn }));
 
-    const { transcribeMediaWithWhisper } =
-      await import("../packages/core/src/transcription/whisper.js");
+    const { transcribeMediaWithWhisper } = await import("../src/transcription/whisper.js");
     const result = await transcribeMediaWithWhisper({
       bytes: new Uint8Array([1, 2, 3]),
       mediaType: "audio/mpeg",
@@ -358,8 +353,7 @@ describe("transcription/whisper local whisper.cpp", () => {
     });
     vi.doMock("node:child_process", () => ({ spawn }));
 
-    const { transcribeMediaWithWhisper } =
-      await import("../packages/core/src/transcription/whisper.js");
+    const { transcribeMediaWithWhisper } = await import("../src/transcription/whisper.js");
     const result = await transcribeMediaWithWhisper({
       bytes: new Uint8Array([1, 2, 3]),
       mediaType: "audio/mpeg",
@@ -427,8 +421,7 @@ describe("transcription/whisper local whisper.cpp", () => {
         },
       }));
 
-      const { transcribeMediaWithWhisper } =
-        await import("../packages/core/src/transcription/whisper.js");
+      const { transcribeMediaWithWhisper } = await import("../src/transcription/whisper.js");
       const result = await transcribeMediaWithWhisper({
         bytes: new Uint8Array([1, 2, 3]),
         mediaType: "video/mp4",
@@ -502,8 +495,7 @@ describe("transcription/whisper local whisper.cpp", () => {
         },
       }));
 
-      const { transcribeMediaWithWhisper } =
-        await import("../packages/core/src/transcription/whisper.js");
+      const { transcribeMediaWithWhisper } = await import("../src/transcription/whisper.js");
       const result = await transcribeMediaWithWhisper({
         bytes: new Uint8Array([1, 2, 3]),
         mediaType: "audio/mpeg",
@@ -550,7 +542,7 @@ describe("transcription/whisper local whisper.cpp", () => {
       },
     }));
 
-    const { isWhisperCppReady } = await import("../packages/core/src/transcription/whisper.js");
+    const { isWhisperCppReady } = await import("../src/transcription/whisper.js");
     await expect(isWhisperCppReady()).resolves.toBe(true);
   });
 
@@ -612,8 +604,7 @@ describe("transcription/whisper local whisper.cpp", () => {
       },
     }));
 
-    const { transcribeMediaFileWithWhisper } =
-      await import("../packages/core/src/transcription/whisper.js");
+    const { transcribeMediaFileWithWhisper } = await import("../src/transcription/whisper.js");
     const result = await transcribeMediaFileWithWhisper({
       filePath: inputPath,
       mediaType: "video/mp4",
@@ -665,8 +656,7 @@ describe("transcription/whisper local whisper.cpp", () => {
       },
     }));
 
-    const { transcribeMediaFileWithWhisper } =
-      await import("../packages/core/src/transcription/whisper.js");
+    const { transcribeMediaFileWithWhisper } = await import("../src/transcription/whisper.js");
     const result = await transcribeMediaFileWithWhisper({
       filePath: inputPath,
       mediaType: "video/mp4",
@@ -710,7 +700,7 @@ describe("transcription/whisper local whisper.cpp", () => {
     vi.doMock("node:child_process", () => ({ spawn }));
 
     const { isWhisperCppReady, transcribeMediaWithWhisper } =
-      await import("../packages/core/src/transcription/whisper.js");
+      await import("../src/transcription/whisper.js");
     await expect(isWhisperCppReady()).resolves.toBe(false);
 
     const result = await transcribeMediaWithWhisper({

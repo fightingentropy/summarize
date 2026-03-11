@@ -1,14 +1,11 @@
 import { describe, expect, it } from "vitest";
-import {
-  jsonTranscriptToSegments,
-  vttToSegments,
-} from "../packages/core/src/content/transcript/parse.js";
+import { jsonTranscriptToSegments, vttToSegments } from "../src/content/transcript/parse.js";
 import {
   formatTimestampMs,
   formatTranscriptSegments,
   parseTimestampStringToMs,
   parseTimestampToMs,
-} from "../packages/core/src/content/transcript/timestamps.js";
+} from "../src/content/transcript/timestamps.js";
 
 describe("transcript timestamp helpers", () => {
   it("formats and parses timestamps", () => {

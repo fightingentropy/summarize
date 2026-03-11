@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fetchHtmlDocument } from "../packages/core/src/content/link-preview/content/fetcher.js";
+import { fetchHtmlDocument } from "../src/content/link-preview/content/fetcher.js";
 
 describe("fetchHtmlDocument", () => {
   it("accepts RSS/XML content-types", async () => {

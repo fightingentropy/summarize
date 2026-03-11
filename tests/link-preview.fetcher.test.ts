@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   fetchHtmlDocument,
   fetchWithWebsiteScraper,
-} from "../packages/core/src/content/link-preview/content/fetcher.js";
+} from "../src/content/link-preview/content/fetcher.js";
 
 const htmlResponse = (html: string, status = 200) =>
   new Response(html, {

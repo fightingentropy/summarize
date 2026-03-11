@@ -770,7 +770,7 @@ describe("llm generate/stream", () => {
     };
     expect(model.baseUrl).toBe("https://openrouter.ai/api/v1");
     expect(model.api).toBe("openai-completions");
-    expect(model.headers?.["HTTP-Referer"]).toBe("https://github.com/erlinhoxha/summarize");
+    expect(model.headers?.["HTTP-Referer"]).toBe("https://github.com/erlinhoxha/summify");
     expect(model.headers?.["X-Title"]).toBe("summarize");
   });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { MAX_OPENAI_UPLOAD_BYTES } from "../packages/core/src/transcription/whisper.js";
+import { MAX_OPENAI_UPLOAD_BYTES } from "../src/transcription/whisper.js";
 
 vi.mock("node:child_process", () => ({
   spawn: (_cmd: string, args: string[]) => {
@@ -18,7 +18,7 @@ vi.mock("node:child_process", () => ({
   },
 }));
 
-import { fetchTranscript } from "../packages/core/src/content/transcript/providers/podcast.js";
+import { fetchTranscript } from "../src/content/transcript/providers/podcast.js";
 
 const baseOptions = {
   fetch: vi.fn() as unknown as typeof fetch,

@@ -10,7 +10,7 @@ import {
   isYouTubeUrl,
   isYouTubeVideoUrl,
   shouldPreferUrlMode,
-} from "../packages/core/src/content/url.js";
+} from "../src/content/url.js";
 
 describe("content/url", () => {
   it("detects YouTube hosts", () => {

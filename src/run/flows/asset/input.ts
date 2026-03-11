@@ -1,12 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { isDirectMediaExtension, isDirectMediaUrl } from "summarize-core/content/url";
 import {
   classifyUrl,
   type InputTarget,
   loadLocalAsset,
   loadRemoteAsset,
 } from "../../../content/asset.js";
+import { isDirectMediaExtension, isDirectMediaUrl } from "../../../content/url.js";
 import { formatBytes } from "../../../tty/format.js";
 import { startOscProgress } from "../../../tty/osc-progress.js";
 import { startSpinner } from "../../../tty/spinner.js";

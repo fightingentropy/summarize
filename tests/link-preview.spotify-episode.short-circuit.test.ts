@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fetchLinkContent } from "../packages/core/src/content/link-preview/content/index.js";
+import { fetchLinkContent } from "../src/content/link-preview/content/index.js";
 
 describe("Spotify episode short-circuit", () => {
   it("skips fetching the Spotify episode HTML page and returns transcript content (URL variations)", async () => {

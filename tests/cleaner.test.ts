@@ -7,7 +7,7 @@ import {
   normalizeForPrompt,
   normalizeWhitespace,
   stripInvisibleUnicode,
-} from "../packages/core/src/content/link-preview/content/cleaner.js";
+} from "../src/content/link-preview/content/cleaner.js";
 
 describe("content cleaner utilities", () => {
   it("normalizes whitespace for prompts", () => {

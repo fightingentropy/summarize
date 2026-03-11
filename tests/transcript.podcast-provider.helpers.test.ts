@@ -2,7 +2,7 @@ import { promises as fs, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { __test__ } from "../packages/core/src/content/transcript/providers/podcast.js";
+import { __test__ } from "../src/content/transcript/providers/podcast.js";
 
 describe("podcast transcript provider - helper branches", () => {
   it("parses and normalizes headers", () => {

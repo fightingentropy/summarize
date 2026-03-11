@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { parseOutputLanguage } from "../src/language.js";
 import {
   buildFileTextSummaryPrompt,
   buildLinkSummaryPrompt,
   buildPathSummaryPrompt,
-} from "../packages/core/src/prompts/index.js";
-import { parseOutputLanguage } from "../src/language.js";
+} from "../src/prompts/index.js";
 
 describe("prompt overrides", () => {
   it("replaces link instructions but keeps context/content tags", () => {

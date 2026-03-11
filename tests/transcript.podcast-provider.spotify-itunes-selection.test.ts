@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fetchTranscript } from "../packages/core/src/content/transcript/providers/podcast.js";
+import { fetchTranscript } from "../src/content/transcript/providers/podcast.js";
 
 const baseOptions = {
   fetch: vi.fn() as unknown as typeof fetch,

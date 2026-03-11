@@ -1,15 +1,12 @@
 {
-  "name": "summarize",
+  "name": "summify",
   "version": "0.12.0",
   "description": "Link → clean text → summary.",
   "bin": {
-    "summarize": "./dist/cli.js",
-    "summarizer": "./dist/cli.js"
+    "summarize": "dist/cli.js",
+    "summarizer": "dist/cli.js",
+    "summify": "dist/cli.js"
   },
-  "workspaces": [
-    ".",
-    "packages/*"
-  ],
   "files": [
     "dist",
     "docs",
@@ -30,19 +27,31 @@
       "types": "./dist/types/content/index.d.ts",
       "import": "./dist/esm/content/index.js"
     },
+    "./content/url": {
+      "types": "./dist/types/content/url.d.ts",
+      "import": "./dist/esm/content/url.js"
+    },
+    "./language": {
+      "types": "./dist/types/language.d.ts",
+      "import": "./dist/esm/language.js"
+    },
+    "./processes": {
+      "types": "./dist/types/processes.d.ts",
+      "import": "./dist/esm/processes.js"
+    },
     "./prompts": {
       "types": "./dist/types/prompts/index.d.ts",
       "import": "./dist/esm/prompts/index.js"
     }
   },
   "scripts": {
-    "build": "bun run clean && bun run --filter summarize-core build && bun run build:lib && bun run build:cli",
+    "build": "bun run clean && bun run build:lib && bun run build:cli",
     "build:bun": "bun scripts/build-bun.js",
     "build:bun:test": "bun scripts/build-bun.js --test",
     "build:cli": "node scripts/build-cli.mjs",
     "build:lib": "tsc -p tsconfig.build.json",
     "check": "bun run format:check && bun run lint && bun run perf:guard && bun run test:coverage",
-    "clean": "rimraf dist packages/core/dist",
+    "clean": "rimraf dist",
     "docs:list": "tsx scripts/docs-list.ts",
     "format": "oxfmt --write",
     "format:check": "oxfmt --check",
@@ -54,27 +63,32 @@
     "release": "bash scripts/release.sh",
     "s": "tsx src/cli.ts",
     "summarize": "tsx src/cli.ts",
+    "summify": "tsx src/cli.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:coverage:build": "bun run build && bun run test:coverage",
     "typecheck": "tsc -p tsconfig.build.json --noEmit"
   },
   "dependencies": {
+    "@fal-ai/client": "^1.9.4",
     "@mariozechner/pi-ai": "^0.57.1",
+    "@mozilla/readability": "0.6.0",
+    "cheerio": "^1.2.0",
     "commander": "^14.0.3",
+    "es-toolkit": "^1.45.1",
     "file-type": "^21.3.0",
     "gpt-tokenizer": "^3.4.0",
+    "jsdom": "28.1.0",
     "json5": "^2.2.3",
     "markdansi": "^0.2.1",
     "mime": "^4.1.0",
     "ora": "^9.3.0",
     "osc-progress": "^0.3.0",
-    "summarize-core": "workspace:*",
+    "sanitize-html": "^2.17.1",
     "tokentally": "^0.1.1",
     "tslog": "^4.10.2"
   },
   "devDependencies": {
-    "@fal-ai/client": "^1.9.4",
     "@types/jsdom": "^28.0.0",
     "@types/node": "^25.3.5",
     "@types/sanitize-html": "^2.16.1",

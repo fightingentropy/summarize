@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { ASSEMBLYAI_TRANSCRIPTION_MODEL_ID } from "../packages/core/src/transcription/whisper/assemblyai.js";
+import { ASSEMBLYAI_TRANSCRIPTION_MODEL_ID } from "../src/transcription/whisper/assemblyai.js";
 import {
   buildCloudModelIdChain,
   buildCloudProviderHint,
   cloudProviderLabel,
   formatCloudFallbackTargets,
   resolveCloudProviderOrder,
-} from "../packages/core/src/transcription/whisper/cloud-providers.js";
+} from "../src/transcription/whisper/cloud-providers.js";
 
 describe("transcription/whisper cloud providers", () => {
   it("resolves cloud provider order from configured keys", () => {

@@ -1,6 +1,6 @@
 import { render as renderMarkdownAnsi } from "markdansi";
-import { isTwitterStatusUrl, isYouTubeUrl } from "summarize-core/content/url";
 import type { ExtractedLinkContent } from "../../../content/index.js";
+import { isTwitterStatusUrl, isYouTubeUrl } from "../../../content/url.js";
 import { buildExtractFinishLabel, writeFinishLine } from "../../finish-line.js";
 import { writeVerbose } from "../../logging.js";
 import { prepareMarkdownForTerminal } from "../../markdown.js";

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fetchTranscriptFromCaptionTracks } from "../packages/core/src/content/transcript/providers/youtube/captions.js";
+import { fetchTranscriptFromCaptionTracks } from "../src/content/transcript/providers/youtube/captions.js";
 
 const jsonResponse = (payload: unknown, status = 200) => Response.json(payload, { status });
 

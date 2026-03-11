@@ -1,6 +1,6 @@
 import { getModels } from "@mariozechner/pi-ai";
-import { isOpenRouterBaseUrl } from "summarize-core";
 import type { SummarizeConfig } from "../config.js";
+import { isOpenRouterBaseUrl } from "../openai/base-url.js";
 import { resolveCliAvailability } from "../run/env.js";
 import { resolveEnvState } from "../run/run-env.js";
 

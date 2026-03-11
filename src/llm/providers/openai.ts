@@ -1,6 +1,6 @@
 import type { Context } from "@mariozechner/pi-ai";
 import { completeSimple } from "@mariozechner/pi-ai";
-import { isOpenRouterBaseUrl, normalizeBaseUrl } from "summarize-core";
+import { isOpenRouterBaseUrl, normalizeBaseUrl } from "../../openai/base-url.js";
 import type { Attachment } from "../attachments.js";
 import { createUnsupportedFunctionalityError } from "../errors.js";
 import type { LlmTokenUsage } from "../types.js";

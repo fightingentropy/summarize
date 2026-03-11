@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fetchTranscript } from "../packages/core/src/content/transcript/providers/generic.js";
+import { fetchTranscript } from "../src/content/transcript/providers/generic.js";
 
 const fetchTranscriptWithYtDlp = vi.fn(async () => ({
   text: "yt-dlp transcript",
@@ -8,7 +8,7 @@ const fetchTranscriptWithYtDlp = vi.fn(async () => ({
   error: null,
 }));
 
-vi.mock("../packages/core/src/content/transcript/providers/youtube/yt-dlp.js", () => ({
+vi.mock("../src/content/transcript/providers/youtube/yt-dlp.js", () => ({
   fetchTranscriptWithYtDlp,
 }));
 

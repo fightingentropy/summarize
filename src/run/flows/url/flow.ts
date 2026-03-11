@@ -1,12 +1,12 @@
-import { NEGATIVE_TTL_MS } from "summarize-core/content";
-import * as urlUtils from "summarize-core/content/url";
 import { buildExtractCacheKey, buildSlidesCacheKey } from "../../../cache.js";
 import { loadRemoteAsset } from "../../../content/asset.js";
+import { NEGATIVE_TTL_MS } from "../../../content/index.js";
 import {
   createLinkPreviewClient,
   type ExtractedLinkContent,
   type FetchLinkContentOptions,
 } from "../../../content/index.js";
+import * as urlUtils from "../../../content/url.js";
 import {
   extractSlidesForSource,
   resolveSlideSource,

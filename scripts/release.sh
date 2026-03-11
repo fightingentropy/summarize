@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# summarize release helper (npm)
-# Phases: gates | build | publish | smoke | tag | tap | all
+# summify release helper (npm)
+# Phases: gates | build | verify | publish | smoke | tag | tap | all
 
 # npm@11 warns on unknown env configs; keep CI/logs clean.
 unset npm_config_manage_package_manager_versions || true
@@ -25,69 +25,47 @@ require_clean_git() {
   fi
 }
 
-require_lockstep_versions() {
-  local root_version core_version
-  root_version="$(node -p 'require("./package.json").version')"
-  core_version="$(node -p 'require("./packages/core/package.json").version')"
-  if [ "$root_version" != "$core_version" ]; then
-    echo "Version mismatch: root=$root_version core=$core_version"
-    exit 1
-  fi
-}
-
 phase_gates() {
   banner "Gates"
   require_clean_git
-  require_lockstep_versions
   run bun run check
 }
 
 phase_build() {
   banner "Build"
-  require_lockstep_versions
   run bun run build
 }
 
 phase_verify_pack() {
   banner "Verify pack"
-  require_lockstep_versions
-  local version tmp_dir tarball core_tarball install_dir
+  local version tmp_dir tarball install_dir
   version="$(node -p 'require("./package.json").version')"
   tmp_dir="$(mktemp -d)"
-  core_tarball="${tmp_dir}/summarize-core-${version}.tgz"
-  tarball="${tmp_dir}/summarize-${version}.tgz"
-  run bash -c "cd packages/core && bun pm pack --destination \"${tmp_dir}\""
+  tarball="${tmp_dir}/summify-${version}.tgz"
   run bun pm pack --destination "${tmp_dir}"
-  if [ ! -f "${core_tarball}" ]; then
-    echo "Missing ${core_tarball}"
-    exit 1
-  fi
   if [ ! -f "${tarball}" ]; then
     echo "Missing ${tarball}"
     exit 1
   fi
   install_dir="${tmp_dir}/install"
   run mkdir -p "${install_dir}"
-  run npm install --prefix "${install_dir}" "${core_tarball}" "${tarball}"
-  run node "${install_dir}/node_modules/summarize/dist/cli.js" --help >/dev/null
+  run npm install --prefix "${install_dir}" "${tarball}"
+  run node "${install_dir}/node_modules/summify/dist/cli.js" --help >/dev/null
   echo "ok"
 }
 
 phase_publish() {
   banner "Publish to npm"
   require_clean_git
-  require_lockstep_versions
-  run bash -c 'cd packages/core && bun publish --tag latest --access public'
   run bun publish --tag latest --access public
 }
 
 phase_smoke() {
   banner "Smoke"
-  run npm view summarize version
-  run npm view summarize-core version
+  run npm view summify version
   local version
   version="$(node -p 'require("./package.json").version')"
-  run bash -c "bunx summarize@${version} --help >/dev/null"
+  run bash -c "bunx summify@${version} --help >/dev/null"
   echo "ok"
 }
 
@@ -117,8 +95,8 @@ phase_tap() {
     exit 1
   fi
 
-  url_arm="https://github.com/erlinhoxha/summarize/releases/download/v${version}/summarize-macos-arm64-v${version}.tar.gz"
-  url_x64="https://github.com/erlinhoxha/summarize/releases/download/v${version}/summarize-macos-x64-v${version}.tar.gz"
+  url_arm="https://github.com/erlinhoxha/summify/releases/download/v${version}/summarize-macos-arm64-v${version}.tar.gz"
+  url_x64="https://github.com/erlinhoxha/summify/releases/download/v${version}/summarize-macos-x64-v${version}.tar.gz"
 
   tmp_dir="$(mktemp -d)"
   tarball_arm="${tmp_dir}/summarize-macos-arm64-v${version}.tar.gz"
@@ -162,7 +140,7 @@ case "$PHASE" in
     echo "  build     bun run build"
     echo "  verify    pack + install tarball + --help"
     echo "  publish   bun publish --tag latest --access public"
-    echo "  smoke     npm view + bunx summarize --help"
+    echo "  smoke     npm view + bunx summify --help"
     echo "  tag       git tag vX.Y.Z + push tags"
     echo "  tap       update homebrew-tap formula + sha"
     echo "  all       gates + build + verify + publish + smoke + tag + tap"

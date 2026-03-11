@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ExtractedLinkContent } from "../packages/core/src/content/link-preview/content/types.js";
+import type { ExtractedLinkContent } from "../src/content/link-preview/content/types.js";
 import {
   createSlidesSummaryStreamHandler,
   createSlidesTerminalOutput,

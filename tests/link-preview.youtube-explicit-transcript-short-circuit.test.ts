@@ -4,11 +4,11 @@ const mocks = vi.hoisted(() => ({
   resolveTranscriptForLink: vi.fn(),
 }));
 
-vi.mock("../packages/core/src/content/transcript/index.js", () => ({
+vi.mock("../src/content/transcript/index.js", () => ({
   resolveTranscriptForLink: mocks.resolveTranscriptForLink,
 }));
 
-import { fetchLinkContent } from "../packages/core/src/content/link-preview/content/index.js";
+import { fetchLinkContent } from "../src/content/link-preview/content/index.js";
 
 const buildDeps = (fetchImpl: typeof fetch) => ({
   fetch: fetchImpl,

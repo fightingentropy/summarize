@@ -1,4 +1,4 @@
-import { extractYouTubeVideoId } from "summarize-core/content/url";
+import { extractYouTubeVideoId } from "../../../content/url.js";
 import type { SummaryLength } from "../../../shared/contracts.js";
 import type { SlideTimelineEntry, TranscriptSegment } from "./slides-text-types.js";
 

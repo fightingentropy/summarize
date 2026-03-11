@@ -38,23 +38,23 @@ Built with Bun. For package installs and `npx`, requires Node 22+.
 - npx (no install):
 
 ```bash
-npx -y summarize "https://example.com"
+npx -y summify "https://example.com"
 ```
 
 - npm (global):
 
 ```bash
-npm i -g summarize
+npm i -g summify
 ```
 
 - npm (library / minimal deps):
 
 ```bash
-npm i summarize-core
+npm i summify
 ```
 
 ```ts
-import { createLinkPreviewClient } from "summarize-core/content";
+import { createLinkPreviewClient } from "summify/content";
 ```
 
 - Homebrew:
@@ -160,7 +160,7 @@ summarize "https://example.com" --length 20k
 - Short content: when extracted content is shorter than the requested length, the CLI returns the content as-is.
   - Override with `--force-summary` to always run the LLM.
 - Minimums: `--length` numeric values must be >= 50 chars; `--max-output-tokens` must be >= 16.
-- Preset targets (source of truth: `packages/core/src/prompts/summary-lengths.ts`):
+- Preset targets (source of truth: `src/prompts/summary-lengths.ts`):
   - short: target ~900 chars (range 600-1,200)
   - medium: target ~1,800 chars (range 1,200-2,500)
   - long: target ~4,200 chars (range 2,500-6,000)
@@ -666,8 +666,8 @@ The CLI uses the LiteLLM model catalog for model limits (like max output tokens)
 
 Recommended (minimal deps):
 
-- `summarize-core/content`
-- `summarize-core/prompts`
+- `summify/content`
+- `summify/prompts`
 
 Compatibility (pulls in CLI deps):
 

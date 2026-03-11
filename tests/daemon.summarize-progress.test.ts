@@ -1,5 +1,5 @@
-import { type LinkPreviewProgressEvent, ProgressKind } from "summarize-core/content";
 import { describe, expect, it } from "vitest";
+import { type LinkPreviewProgressEvent, ProgressKind } from "../src/content/index.js";
 import { formatProgress } from "../src/daemon/summarize-progress.js";
 
 describe("daemon/summarize-progress", () => {

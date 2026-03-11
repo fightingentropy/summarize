@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stripHiddenHtml } from "../packages/core/src/content/link-preview/content/visibility.js";
+import { stripHiddenHtml } from "../src/content/link-preview/content/visibility.js";
 
 describe("hidden content stripping", () => {
   it("removes common hidden element patterns", () => {

@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import type { TranscriptCache } from "../packages/core/src/content/cache/types.js";
+import type { TranscriptCache } from "../src/content/cache/types.js";
 import {
   DEFAULT_TTL_MS,
   mapCachedSource,
   NEGATIVE_TTL_MS,
   readTranscriptCache,
   writeTranscriptCache,
-} from "../packages/core/src/content/transcript/cache.js";
+} from "../src/content/transcript/cache.js";
 
 describe("transcript cache - more branches", () => {
   it("reports bypass diagnostics even without a cache", async () => {

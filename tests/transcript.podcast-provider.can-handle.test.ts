@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canHandle } from "../packages/core/src/content/transcript/providers/podcast.js";
+import { canHandle } from "../src/content/transcript/providers/podcast.js";
 
 describe("podcast transcript provider - canHandle + RSS detection branches", () => {
   it("detects RSS/Atom/XML and common podcast hosts", () => {

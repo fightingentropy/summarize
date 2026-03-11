@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildLinkSummaryPrompt } from "../packages/core/src/prompts/index.js";
+import { buildLinkSummaryPrompt } from "../src/prompts/index.js";
 
 describe("buildLinkSummaryPrompt (slides)", () => {
   it("adds slide timeline guidance with overview paragraph first", () => {

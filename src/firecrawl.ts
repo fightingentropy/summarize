@@ -1,4 +1,4 @@
-import type { WebsiteScrapeResult, ScrapeWebsite } from "summarize-core/content";
+import type { WebsiteScrapeResult, ScrapeWebsite } from "./content/index.js";
 
 type FirecrawlResponse = {
   success: boolean;

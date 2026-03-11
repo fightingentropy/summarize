@@ -10,7 +10,6 @@ WORKDIR /app
 
 # Copy package files first for better caching
 COPY package.json bun.lock tsconfig*.json ./
-COPY packages/core/package.json ./packages/core/package.json
 
 # Remove prepare script to prevent build before source is copied
 RUN sed -i 's/"prepare":.*,//' package.json
@@ -21,10 +20,9 @@ RUN CI=true bun install --frozen-lockfile
 # Copy source code
 COPY src/ ./src/
 COPY scripts/ ./scripts/
-COPY packages/core/ ./packages/core/
 
 # Build
 RUN bun run build
 
 # Default: run the CLI
-ENTRYPOINT ["bun", "run", "summarize", "--"]
+ENTRYPOINT ["bun", "run", "summify", "--"]

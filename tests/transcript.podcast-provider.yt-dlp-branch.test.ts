@@ -8,11 +8,11 @@ const mocks = vi.hoisted(() => ({
   })),
 }));
 
-vi.mock("../packages/core/src/content/transcript/providers/youtube/yt-dlp.js", () => ({
+vi.mock("../src/content/transcript/providers/youtube/yt-dlp.js", () => ({
   fetchTranscriptWithYtDlp: mocks.fetchTranscriptWithYtDlp,
 }));
 
-import { fetchTranscript } from "../packages/core/src/content/transcript/providers/podcast.js";
+import { fetchTranscript } from "../src/content/transcript/providers/podcast.js";
 
 const baseOptions = {
   fetch: vi.fn() as unknown as typeof fetch,

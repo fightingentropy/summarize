@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchTranscript } from "../packages/core/src/content/transcript/providers/podcast.js";
+import { fetchTranscript } from "../src/content/transcript/providers/podcast.js";
 import { stubMissingTranscriptionEnv } from "./helpers/transcription-env.js";
 
 const baseOptions = {

@@ -3,17 +3,16 @@
 - Hard rule: single source of truth = `~/Projects/summarize`; never commit in `vendor/summarize` (treat it as a read-only checkout).
 - Note: multiple agents often work in this folder. If you see files/changes you do not recognize, ignore them and list them at the end.
 
-## Workspace layout (note)
+## Package layout (note)
 
-- Monorepo (Bun workspace).
-- Packages:
-  - `summarize` = CLI + UX (TTY/progress/streaming). Depends on core.
-  - `summarize-core` (`packages/core`) = library surface for programmatic use (Sweetistics etc). No CLI entrypoints.
-- Versioning: lockstep versions; publish order: core first, then CLI (`scripts/release.sh` / `RELEASING.md`).
+- Single package repo.
+- Package:
+  - `summify` = CLI + library surface (TTY/progress/streaming + reusable content/prompt exports).
+- Versioning: single package release (`scripts/release.sh` / `RELEASING.md`).
 - Dev:
-  - Build: `bun run build` (builds core first)
+  - Build: `bun run build`
   - Gate: `bun run check`
-  - Import from apps: prefer `summarize-core` to avoid pulling CLI-only deps.
+  - Import from apps: prefer `summify/content` or `summify/prompts`.
 - Daemon: restart with `bun run summarize -- daemon restart`; verify via `bun run summarize -- daemon status`.
 - Rebuild after daemon/runtime changes:
   1. `bun run build`
