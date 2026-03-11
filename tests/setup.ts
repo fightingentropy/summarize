@@ -1,0 +1,1 @@
+process.env.SUMMARIZE_DISABLE_LOCAL_WHISPER_CPP = "1";

@@ -1,0 +1,167 @@
+import { extractYouTubeAvailabilityIssue } from "../../link-preview/content/youtube.js";
+import { resolveTranscriptionConfig } from "../transcription-config.js";
+import type { ProviderContext, ProviderFetchOptions, ProviderResult } from "../types.js";
+import { resolveTranscriptProviderCapabilities } from "./transcription-capability.js";
+import {
+  buildUnavailableResult,
+  extractDurationMetadataFromHtml,
+  loadYoutubeHtml,
+  resolveDurationMetadata,
+  resolveEffectiveVideoId,
+  tryApifyTranscript,
+  tryManualCaptionTranscript,
+  tryWebTranscript,
+  tryYtDlpTranscript,
+} from "./youtube/provider-flow.js";
+
+const YOUTUBE_URL_PATTERN = /youtube\.com|youtu\.be/i;
+
+export const canHandle = ({ url }: ProviderContext): boolean => YOUTUBE_URL_PATTERN.test(url);
+
+export const fetchTranscript = async (
+  context: ProviderContext,
+  options: ProviderFetchOptions,
+): Promise<ProviderResult> => {
+  const attemptedProviders: ProviderResult["attemptedProviders"] = [];
+  const notes: string[] = [];
+  const transcription = resolveTranscriptionConfig(options);
+  const { url } = context;
+  const html = await loadYoutubeHtml(context, options);
+  const mode = options.youtubeTranscriptMode;
+  const progress = typeof options.onProgress === "function" ? options.onProgress : null;
+  const transcriptionCapabilities = await resolveTranscriptProviderCapabilities({
+    transcription,
+    ytDlpPath: options.ytDlpPath,
+  });
+  const canRunYtDlp = transcriptionCapabilities.canRunYtDlp;
+  const pushHint = (hint: string) => {
+    progress?.({ kind: "transcript-start", url, service: "youtube", hint });
+  };
+
+  if (mode === "yt-dlp" && !options.ytDlpPath) {
+    throw new Error(
+      "Missing yt-dlp binary for --youtube yt-dlp (set YT_DLP_PATH or install yt-dlp)",
+    );
+  }
+  if (mode === "yt-dlp" && !transcriptionCapabilities.canTranscribe) {
+    throw new Error(
+      "Missing transcription provider for --youtube yt-dlp (install whisper-cpp or set GROQ_API_KEY/ASSEMBLYAI_API_KEY/GEMINI_API_KEY/OPENAI_API_KEY/FAL_KEY)",
+    );
+  }
+
+  // In explicit apify mode we can continue without HTML.
+  if (!html && mode !== "apify") {
+    return { text: null, source: null, attemptedProviders };
+  }
+  const effectiveVideoId = resolveEffectiveVideoId(context);
+  const htmlText = html ?? "";
+  const htmlDurationMetadata = extractDurationMetadataFromHtml(htmlText);
+  const availabilityIssue = htmlText ? extractYouTubeAvailabilityIssue(htmlText) : null;
+  // In explicit apify mode we can continue without a parsed video id.
+  if (!effectiveVideoId && mode !== "apify") {
+    return { text: null, source: null, attemptedProviders };
+  }
+  if (availabilityIssue) {
+    notes.push(availabilityIssue.message);
+  }
+  const flow = {
+    context,
+    options,
+    transcription,
+    htmlText,
+    attemptedProviders,
+    notes,
+    effectiveVideoId,
+    durationMetadata: htmlDurationMetadata,
+    canRunYtDlp,
+    pushHint,
+  };
+  const withDurationMetadata = async (
+    result: ProviderResult | null,
+  ): Promise<ProviderResult | null> => {
+    if (!result) {
+      return null;
+    }
+
+    const hasResolvedDuration =
+      result.metadata != null &&
+      Object.prototype.hasOwnProperty.call(result.metadata, "durationSeconds");
+    const existingDuration = result.metadata?.durationSeconds;
+    if (
+      hasResolvedDuration &&
+      typeof existingDuration === "number" &&
+      Number.isFinite(existingDuration) &&
+      existingDuration > 0
+    ) {
+      return result;
+    }
+
+    const durationMetadata = await resolveDurationMetadata({
+      htmlText,
+      effectiveVideoId,
+      url,
+      options,
+      durationMetadata: htmlDurationMetadata,
+      skipPlayerLookup: hasResolvedDuration,
+    });
+    if (!durationMetadata) {
+      return result;
+    }
+
+    return {
+      ...result,
+      metadata: {
+        ...(result.metadata ?? {}),
+        ...durationMetadata,
+      },
+    };
+  };
+
+  // Try no-auto mode (skip auto-generated captions, fall back to yt-dlp)
+  if (mode === "no-auto") {
+    const manualTranscript = await withDurationMetadata(await tryManualCaptionTranscript(flow));
+    if (manualTranscript) return manualTranscript;
+    notes.push("No creator captions found, using yt-dlp transcription");
+  }
+
+  // Try web methods (youtubei, captionTracks) if mode is 'auto' or 'web'
+  if (mode === "auto" || mode === "web") {
+    const transcript = await withDurationMetadata(await tryWebTranscript(flow));
+    if (transcript) return transcript;
+  }
+
+  // Try yt-dlp (audio download + Groq/AssemblyAI/Gemini/OpenAI/FAL transcription) if mode is 'auto', 'no-auto', or 'yt-dlp'
+  if (mode === "yt-dlp" || mode === "no-auto" || (mode === "auto" && canRunYtDlp)) {
+    const transcript = await withDurationMetadata(await tryYtDlpTranscript({ flow, mode }));
+    if (transcript) return transcript;
+
+    // Auto mode: only try Apify after yt-dlp fails (last resort).
+    if (mode === "auto") {
+      const apifyResult = await withDurationMetadata(
+        await tryApifyTranscript(flow, "YouTube: yt-dlp transcription failed; trying Apify"),
+      );
+      if (apifyResult) return apifyResult;
+    }
+  }
+
+  // Explicit apify mode: allow forcing it, but require a token.
+  if (mode === "apify") {
+    if (!options.apifyApiToken) {
+      throw new Error("Missing APIFY_API_TOKEN for --youtube apify");
+    }
+    const apifyResult = await withDurationMetadata(
+      await tryApifyTranscript(flow, "YouTube: fetching transcript (Apify)"),
+    );
+    if (apifyResult) return apifyResult;
+  }
+
+  // Auto mode: if yt-dlp cannot run (no binary/credentials), fall back to Apify last-last.
+  if (mode === "auto" && !canRunYtDlp) {
+    const apifyResult = await withDurationMetadata(
+      await tryApifyTranscript(flow, "YouTube: captions unavailable; trying Apify"),
+    );
+    if (apifyResult) return apifyResult;
+  }
+
+  return buildUnavailableResult(flow, availabilityIssue);
+};

@@ -1,0 +1,58 @@
+# nvidia-onnx-transcription
+
+---
+
+summary: "Local Parakeet/Canary ONNX transcription via external CLI."
+read_when:
+
+- "When configuring or changing local ONNX transcription (parakeet/canary)."
+
+---
+
+# NVIDIA Parakeet/Canary ONNX transcription
+
+Summarize can now run local transcription through NVIDIA's Parakeet-TDT 0.6B-v3 or Canary 1B-v2 ONNX exports by shelling out to a user-provided CLI. Auto selection prefers ONNX when configured; you can still force Whisper or a specific ONNX model.
+
+## How to enable
+
+1. Install a CLI capable of running the ONNX models (e.g. `sherpa-onnx` or a custom wrapper). Homebrew may not have a formula; use upstream binaries or build from source if needed. The CLI must emit the transcribed text on stdout and accept a single WAV input path. **Summarize now downloads the Hugging Face model files automatically on first use** into the cache (see below), so your command template can reference the provided paths.
+2. Set one (or both) command templates:
+
+- Recommended (no shell): provide a JSON array (command + args):
+  - `SUMMARIZE_ONNX_PARAKEET_CMD='["sherpa-onnx", "...", "--tokens", "{vocab}", "--offline-ctc-model", "{model}", "--input-wav", "{input}"]'`
+  - `SUMMARIZE_ONNX_CANARY_CMD='["my-canary-wrapper", "{model_dir}", "{input}"]'`
+- Shell string (advanced): `SUMMARIZE_ONNX_PARAKEET_CMD="sherpa-onnx ... --tokens {vocab} --offline-ctc-model {model} --input-wav {input}"`
+
+Notes:
+
+- If you use the shell string form, **do not quote placeholders** (Summarize shell-escapes substituted paths so spaces work and injection risk is reduced).
+
+Placeholders:
+
+- `{input}` — audio path (added to the end if not present)
+- `{model}` — downloaded `model.onnx` path
+- `{vocab}` — downloaded `vocab.txt` path
+- `{model_dir}` — parent directory containing the downloaded files
+
+3. Pick the ONNX model via CLI or env:
+
+- Auto (default): leave `SUMMARIZE_TRANSCRIBER` unset or set `SUMMARIZE_TRANSCRIBER=auto`
+- CLI: `--transcriber parakeet` or `--transcriber canary`
+- Env: `SUMMARIZE_TRANSCRIBER=parakeet` (or `canary`)
+
+### Cache + download details
+
+- Artifacts are stored under `${SUMMARIZE_ONNX_CACHE_DIR || $XDG_CACHE_HOME || ~/.cache}/summarize/onnx/<model>/`.
+- Set `SUMMARIZE_ONNX_MODEL_BASE_URL` to point at a mirror (defaults to the Hugging Face repo for the chosen model).
+- The first run downloads `model.onnx` and `vocab.txt`; subsequent runs reuse cached files.
+
+## Behavior
+
+- Input audio is transcoded to 16kHz mono WAV via `ffmpeg` when available; otherwise the original file is passed to the CLI.
+- Onnx errors (missing command, non-zero exit, empty output) fall back to the existing Whisper flow with a note recorded in the transcript metadata.
+- Progress UI shows "ONNX (Parakeet/Canary)" while the external transcriber runs.
+
+## Notes
+
+- The ONNX inference binary itself is **not** bundled; users must install or provide it separately.
+- This flow remains CPU-only and compatible with existing transcript providers.

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    {% assign page_title = page.title | default: page.name | default: "Docs" | replace: ".md", "" | replace: "-", " " %}
+    <title>{{ page_title }} — summarize</title>
+    <meta name="description" content="{{ page.summary | default: site.description | escape }}" />
+    <link rel="canonical" href="https://summarize.sh{{ page.url | replace: 'index.html', '' }}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/assets/site.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="top">
+        <a class="brand" href="/" aria-label="summarize home">
+          <span class="brand__mark" aria-hidden="true">s</span>
+          <span class="brand__word">summarize</span>
+        </a>
+        <nav class="nav" aria-label="Primary">
+          <a data-nav="home" href="/">Home</a>
+          <a data-nav="docs" href="/docs/index.html">Docs</a>
+          <a href="https://github.com/erlinhoxha/summarize">GitHub</a>
+        </nav>
+      </header>
+
+      <section class="docShell">
+        <aside class="side" aria-label="Docs navigation">
+          <h2>Docs</h2>
+          <a href="/docs/index.html">Overview</a>
+          <a href="/docs/website.html">Website mode</a>
+          <a href="/docs/youtube.html">YouTube mode</a>
+          <a href="/docs/extract-only.html">Extract</a>
+          <a href="/docs/llm.html">LLM</a>
+          <a href="/docs/openai.html">OpenAI</a>
+          <a href="/docs/firecrawl.html">Firecrawl</a>
+          <a href="/docs/config.html">Config</a>
+        </aside>
+
+        <article class="doc reveal">
+          {{ content }}
+        </article>
+      </section>
+
+      <footer class="footer">
+        <span>summarize — Link → clean text → summary.</span>
+        <span><a href="/docs/index.html">Docs</a> · <a href="https://github.com/erlinhoxha/summarize">Repo</a></span>
+      </footer>
+    </main>
+
+    <script type="module" src="/assets/site.js"></script>
+  </body>
+</html>
