@@ -179,9 +179,7 @@ export async function handleTranscriberCliRequest({
 
   if (!onnxStatus.some((entry) => entry.configured)) {
     stdout.write(`${heading("To enable ONNX locally:")}\n`);
-    stdout.write(
-      `  ${dim("Install sherpa-onnx from upstream binaries or build; Homebrew may not have a formula.")}\n`,
-    );
+    stdout.write(`  ${dim("Install sherpa-onnx from upstream binaries or your own build.")}\n`);
     for (const line of renderOnnxEnvExample(model)) {
       stdout.write(`  ${line}\n`);
     }

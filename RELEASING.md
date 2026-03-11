@@ -1,10 +1,10 @@
-# Releasing `summarize` (npm + Homebrew/Bun)
+# Releasing `ai-summary` (npm + GitHub)
 
 Ship is **not done** until:
 
 - npm is published
-- GitHub Release has the Bun tarball asset
-- Homebrew tap is bumped + `brew install` verifies
+- the release tag is pushed
+- GitHub release notes/assets are published if you are using GitHub Releases
 
 ## Version sources (keep in sync)
 
@@ -40,7 +40,7 @@ Ship is **not done** until:
    git push --tags
    ```
 
-5. GitHub Release + assets
+5. Optional GitHub Release + assets
 
    ```bash
    ver="$(node -p 'require(\"./package.json\").version')"
@@ -65,22 +65,7 @@ Ship is **not done** until:
 
    - Verify notes render (real newlines): `gh release view v<ver> --json body --jq .body`
 
-6. Homebrew tap bump + verify
-   - Repo: `~/Projects/homebrew-tap`
-   - Update `Formula/summarize.rb`:
-     - `url` → GitHub Release asset URL
-     - `sha256` → from `bun run build:bun:test`
-     - `version` + test expectation
-   - `git commit -am "chore: bump summarize to <ver>" && git push`
-   - Verify:
-     ```bash
-     brew uninstall summarize || true
-     brew tap erlinhoxha/tap || true
-     brew install erlinhoxha/tap/summarize
-     summarize --version
-     ```
-
-7. Publish to npm + smoke
+6. Publish to npm + smoke
    - If npm asks for OTP:
      - `npm_config_auth_type=legacy bun publish --tag latest --access public --otp <otp>`
    - Otherwise:
@@ -90,9 +75,9 @@ Ship is **not done** until:
    - Smoke:
      ```bash
      ver="$(node -p 'require(\"./package.json\").version')"
-     npm view summify version
-     bunx summify@"${ver}" --version
-     bunx summify@"${ver}" --help >/dev/null
+     npm view ai-summary version
+     bunx ai-summary@"${ver}" --version
+     bunx ai-summary@"${ver}" --help >/dev/null
      ```
 
 ## npm (npmjs)
@@ -104,15 +89,9 @@ Notes:
 
 Helper (npm-only): `scripts/release.sh` (phases: `gates|build|publish|smoke|tag|all`).
 
-## Homebrew (Bun-compiled binary w/ bytecode) - details
+## Optional Bun binary release
 
-Goal:
-
-- Build a **macOS arm64** Bun binary named `summarize`
-- Package as `dist-bun/summarize-macos-arm64-v<ver>.tar.gz`
-- Upload tarball as a GitHub Release asset
-- Point Homebrew formula at that asset + sha256
-- Formula should install the compiled `summarize` binary directly (no Bun wrapper script).
+If you want a compiled macOS binary attached to a GitHub release:
 
 1. Build the Bun artifact
    - `bun run build:bun`
@@ -130,18 +109,3 @@ Goal:
    - Upload `dist-bun/summarize-macos-arm64-v<ver>.tar.gz`
    - Verify notes render correctly:
      - `gh release view v<ver> --json body --jq .body` (should show real newlines, not literal `\\n`)
-
-4. Homebrew tap update (when approved + after asset is live)
-   - Repo: `~/Projects/homebrew-tap`
-   - Add/update `Formula/summarize.rb`:
-     - `url` = GitHub Release asset URL
-     - `sha256` = from step (1)
-     - `version` = `<ver>`
-
-5. Homebrew verification (after formula update)
-   ```bash
-   brew uninstall summarize || true
-   brew tap erlinhoxha/tap || true
-   brew install erlinhoxha/tap/summarize
-   summarize --version
-   ```

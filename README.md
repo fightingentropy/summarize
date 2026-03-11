@@ -38,28 +38,24 @@ Built with Bun. For package installs and `npx`, requires Node 22+.
 - npx (no install):
 
 ```bash
-npx -y summify "https://example.com"
+npx -y ai-summary "https://example.com"
 ```
 
 - npm (global):
 
 ```bash
-npm i -g summify
+npm i -g ai-summary
 ```
 
 - npm (library / minimal deps):
 
 ```bash
-npm i summify
+npm i ai-summary
 ```
 
 ```ts
-import { createLinkPreviewClient } from "summify/content";
+import { createLinkPreviewClient } from "ai-summary/content";
 ```
-
-- Homebrew:
-
-Summarize is not currently available via Homebrew. The old custom tap instructions are stale, so use `npx` or the npm global install above instead.
 
 ### Optional local dependencies
 
@@ -75,10 +71,10 @@ Install these if you want media-heavy features:
   - `OPENAI_API_KEY`
   - `FAL_KEY`
 
-macOS (if you use Homebrew for prerequisites):
+macOS:
 
 ```bash
-brew install ffmpeg yt-dlp
+# install ffmpeg and yt-dlp with your package manager of choice
 xcode-select --install # optional fallback for source/dev --slides-ocr builds on macOS
 ```
 
@@ -226,7 +222,7 @@ Use `summarize --help` or `summarize help` for the full help text.
 - `--format md|text`: website/file content format (default `text`)
 - `--markdown-mode off|auto|llm|readability`: HTML -> Markdown mode (default `readability`)
 - `--preprocess off|auto|always`: controls `uvx markitdown` usage (default `auto`)
-  - Install `uvx`: `brew install uv` (or https://astral.sh/uv/)
+  - Install `uvx`: https://astral.sh/uv/ (or set `UVX_PATH` to your `uvx` binary)
 - `--extract`: print extracted content and exit (URLs only; stdin `-` is not supported)
   - Deprecated alias: `--extract-only`
 - `--slides`: extract slides for YouTube/direct video URLs and render them inline in the summary narrative (auto-renders inline in supported terminals)
@@ -411,7 +407,7 @@ one of `GROQ_API_KEY`, `ASSEMBLYAI_API_KEY`, `GEMINI_API_KEY` (or Google aliases
 Summarize can use NVIDIA Parakeet/Canary ONNX models via a local CLI you provide. Auto selection (default) prefers ONNX when configured.
 
 - Setup helper: `summarize transcriber setup`
-- Install `sherpa-onnx` from upstream binaries/build (Homebrew may not have a formula)
+- Install `sherpa-onnx` from upstream binaries/build
 - Auto selection: set `SUMMARIZE_ONNX_PARAKEET_CMD` or `SUMMARIZE_ONNX_CANARY_CMD` (no flag needed)
 - Force a model: `--transcriber parakeet|canary|whisper|auto`
 - Docs: `docs/nvidia-onnx-transcription.md`
@@ -666,13 +662,13 @@ The CLI uses the LiteLLM model catalog for model limits (like max output tokens)
 
 Recommended (minimal deps):
 
-- `summify/content`
-- `summify/prompts`
+- `ai-summary/content`
+- `ai-summary/prompts`
 
 Compatibility (pulls in CLI deps):
 
-- `summarize/content`
-- `summarize/prompts`
+- `ai-summary/content`
+- `ai-summary/prompts`
 
 ### Development
 

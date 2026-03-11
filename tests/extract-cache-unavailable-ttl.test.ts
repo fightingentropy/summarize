@@ -6,7 +6,7 @@ import { createCacheStore, type CacheStore } from "../src/cache.js";
 import { NEGATIVE_TTL_MS } from "../src/content/index.js";
 
 /**
- * Regression test for https://github.com/erlinhoxha/summify/issues/114
+ * Regression test for https://github.com/erlinhoxha/ai-summary/issues/114
  *
  * When the transcript source is "unavailable" (e.g. Apify timeout), the
  * extract cache entry must use a short TTL (NEGATIVE_TTL_MS) instead of

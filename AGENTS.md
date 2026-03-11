@@ -7,12 +7,12 @@
 
 - Single package repo.
 - Package:
-  - `summify` = CLI + library surface (TTY/progress/streaming + reusable content/prompt exports).
+  - `ai-summary` = CLI + library surface (TTY/progress/streaming + reusable content/prompt exports).
 - Versioning: single package release (`scripts/release.sh` / `RELEASING.md`).
 - Dev:
   - Build: `bun run build`
   - Gate: `bun run check`
-  - Import from apps: prefer `summify/content` or `summify/prompts`.
+  - Import from apps: prefer `ai-summary/content` or `ai-summary/prompts`.
 - Daemon: restart with `bun run summarize -- daemon restart`; verify via `bun run summarize -- daemon status`.
 - Rebuild after daemon/runtime changes:
   1. `bun run build`

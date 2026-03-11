@@ -1,11 +1,11 @@
 import type { ModelConfig } from "../config.js";
 
 export const TWITTER_CLI_TIP =
-  "Tip: Install xurl (preferred) or bird for better X support: brew install --cask xdevplatform/tap/xurl";
+  "Tip: Install xurl (preferred) or bird for better X support and ensure it is on your PATH.";
 export const BIRD_TIP = TWITTER_CLI_TIP;
 export const UVX_TIP =
-  "Tip: Install uv (uvx) for local Markdown conversion: brew install uv (or set UVX_PATH to your uvx binary).";
-export const SUPPORT_URL = "https://github.com/erlinhoxha/summify";
+  "Tip: Install uv (uvx) for local Markdown conversion from https://astral.sh/uv/ (or set UVX_PATH to your uvx binary).";
+export const SUPPORT_URL = "https://github.com/erlinhoxha/ai-summary";
 export const TWITTER_HOSTS = new Set(["x.com", "twitter.com", "mobile.twitter.com"]);
 export const MAX_TEXT_BYTES_DEFAULT = 10 * 1024 * 1024;
 
