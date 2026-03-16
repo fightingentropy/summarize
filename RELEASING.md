@@ -43,8 +43,8 @@ For version `<ver>`, the release must include:
 
 - `dist-bun/summarize-macos-arm64-v<ver>.tar.gz`
 - `dist-bun/summarize-macos-arm64-v<ver>.tar.gz.sha256`
-- `dist-bun/summarize-macos-x64-v<ver>.tar.gz`
-- `dist-bun/summarize-macos-x64-v<ver>.tar.gz.sha256`
+- `dist-bun/summarize-linux-x64-v<ver>.tar.gz`
+- `dist-bun/summarize-linux-x64-v<ver>.tar.gz.sha256`
 
 ## Manual path
 

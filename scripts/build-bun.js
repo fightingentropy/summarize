@@ -13,6 +13,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
@@ -23,9 +24,19 @@ import { basename, join } from "node:path";
 const projectRoot = join(import.meta.dir, "..");
 const distDir = join(projectRoot, "dist-bun");
 const require = createRequire(import.meta.url);
-const MAC_TARGETS = [
-  { arch: "arm64", archiveTarget: "macos-arm64", target: "bun-darwin-arm64", outName: "summarize" },
-  { arch: "x64", archiveTarget: "macos-x64", target: "bun-darwin-x64", outName: "summarize-x64" },
+const RELEASE_TARGETS = [
+  {
+    arch: "arm64",
+    archiveTarget: "macos-arm64",
+    target: "bun-darwin-arm64",
+    outName: "summarize-macos-arm64",
+  },
+  {
+    arch: "x64",
+    archiveTarget: "linux-x64",
+    target: "bun-linux-x64",
+    outName: "summarize-linux-x64",
+  },
 ];
 
 function run(cmd, args, opts = {}) {
@@ -142,19 +153,21 @@ function packageTarball({ binaryPath, version, arch, archiveTarget }) {
   return { tarPath, checksum };
 }
 
-function buildMacosTargets({ version }) {
+function buildReleaseTargets({ version }) {
   const gitSha = readGitSha();
   const builds = {};
 
-  for (const { arch, archiveTarget, target, outName } of MAC_TARGETS) {
+  for (const { arch, archiveTarget, target, outName } of RELEASE_TARGETS) {
     const binary = buildOne({ target, outName, version, gitSha });
     const packaged = packageTarball({ binaryPath: binary, version, arch, archiveTarget });
-    builds[arch] = { binary, ...packaged };
+    builds[archiveTarget] = { binary, ...packaged };
   }
 
   console.log("\n🔐 sha256:");
-  for (const { arch } of MAC_TARGETS) {
-    console.log(`${builds[arch].checksum.sha}  ${basename(builds[arch].tarPath)}`);
+  for (const { archiveTarget } of RELEASE_TARGETS) {
+    console.log(
+      `${builds[archiveTarget].checksum.sha}  ${basename(builds[archiveTarget].tarPath)}`,
+    );
   }
 
   return builds;
@@ -209,9 +222,13 @@ async function runE2E(binary) {
 }
 
 function pickHostBinary(builds) {
-  if (process.arch === "arm64" && builds.arm64) return builds.arm64.binary;
-  if (process.arch === "x64" && builds.x64) return builds.x64.binary;
-  return builds.arm64?.binary ?? builds.x64?.binary;
+  if (process.platform === "darwin" && process.arch === "arm64") {
+    return builds["macos-arm64"]?.binary;
+  }
+  if (process.platform === "linux" && process.arch === "x64") {
+    return builds["linux-x64"]?.binary;
+  }
+  return undefined;
 }
 
 async function main() {
@@ -220,11 +237,10 @@ async function main() {
 
   const version = readPackageVersion();
 
-  if (!existsSync(distDir)) {
-    mkdirSync(distDir, { recursive: true });
-  }
+  rmSync(distDir, { recursive: true, force: true });
+  mkdirSync(distDir, { recursive: true });
 
-  const builds = buildMacosTargets({ version });
+  const builds = buildReleaseTargets({ version });
 
   if (process.argv.includes("--test")) {
     const hostBinary = pickHostBinary(builds);

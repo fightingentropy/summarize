@@ -40,8 +40,8 @@ asset_paths() {
   printf '%s\n' \
     "dist-bun/summarize-macos-arm64-v${version}.tar.gz" \
     "dist-bun/summarize-macos-arm64-v${version}.tar.gz.sha256" \
-    "dist-bun/summarize-macos-x64-v${version}.tar.gz" \
-    "dist-bun/summarize-macos-x64-v${version}.tar.gz.sha256"
+    "dist-bun/summarize-linux-x64-v${version}.tar.gz" \
+    "dist-bun/summarize-linux-x64-v${version}.tar.gz.sha256"
 }
 
 require_release_assets() {
@@ -104,8 +104,8 @@ phase_release() {
   run gh release create "${tag}" \
     "dist-bun/summarize-macos-arm64-v${version}.tar.gz" \
     "dist-bun/summarize-macos-arm64-v${version}.tar.gz.sha256" \
-    "dist-bun/summarize-macos-x64-v${version}.tar.gz" \
-    "dist-bun/summarize-macos-x64-v${version}.tar.gz.sha256" \
+    "dist-bun/summarize-linux-x64-v${version}.tar.gz" \
+    "dist-bun/summarize-linux-x64-v${version}.tar.gz.sha256" \
     --title "${tag}" \
     --notes-file "${notes}"
   rm -f "${notes}"
@@ -129,7 +129,7 @@ case "$PHASE" in
     echo "  gates     bun run check"
     echo "  build     bun run build + bun run build:bun:test"
     echo "  tag       push HEAD + create/push vX.Y.Z tag"
-    echo "  release   gh release create with Bun tarballs + sha256 assets"
+    echo "  release   gh release create with macOS arm64 + Linux x64 Bun tarballs and sha256 assets"
     echo "  all       gates + build + tag + release"
     exit 2
     ;;

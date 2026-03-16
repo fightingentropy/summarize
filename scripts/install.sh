@@ -6,7 +6,6 @@ REPO="${SUMMARIZE_GITHUB_REPO:-fightingentropy/summarize}"
 INSTALL_DIR="${SUMMARIZE_INSTALL_DIR:-$HOME/.local/bin}"
 RELEASE_BASE_URL="${SUMMARIZE_RELEASE_BASE_URL:-}"
 VERSION="${SUMMARIZE_VERSION:-}"
-TARGET="${SUMMARIZE_TARGET:-}"
 ARCHIVE_BINARY="summarize"
 
 log() {
@@ -32,11 +31,11 @@ detect_target() {
     Darwin:arm64|Darwin:aarch64)
       printf 'macos-arm64\n'
       ;;
-    Darwin:x86_64)
-      printf 'macos-x64\n'
+    Linux:x86_64)
+      printf 'linux-x64\n'
       ;;
     *)
-      fail "unsupported platform ${os}/${arch}; current release installer supports macOS arm64/x64"
+      fail "unsupported platform ${os}/${arch}; summarize installer supports only macOS Apple Silicon and Linux x64"
       ;;
   esac
 }
@@ -104,9 +103,7 @@ require_tool curl
 require_tool tar
 require_tool install
 
-if [[ -z "$TARGET" ]]; then
-  TARGET="$(detect_target)"
-fi
+TARGET="$(detect_target)"
 
 if [[ -n "$RELEASE_BASE_URL" && -z "$VERSION" ]]; then
   fail "SUMMARIZE_VERSION is required when SUMMARIZE_RELEASE_BASE_URL is set"
