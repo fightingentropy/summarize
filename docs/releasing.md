@@ -2,25 +2,24 @@
 
 ---
 
-## summary: "Release checklist for npm publishing and tags."
+## summary: "Release checklist for GitHub tags, releases, and Bun installer assets."
 
 # Releasing
 
 ## Goals
 
-- Publish npm.
 - Push the release tag.
-- Create a GitHub release when you want release notes/assets.
+- Publish the GitHub release.
+- Attach the Bun tarballs and `.sha256` files used by the installer.
 
 ## Checklist
 
-1. `scripts/release.sh all` (gates → build → verify → publish → smoke → tag).
-2. Create a GitHub release for the new tag if you want release notes/assets.
-   Include the Bun tarballs and matching `.sha256` files so the one-command installer keeps working.
-3. Verify `npm view ai-summary version` matches the version you just published.
+1. `scripts/release.sh all`
+2. Verify the release assets exist in GitHub.
+3. Smoke the installer for the new version.
 4. If anything fails, fix it and re-cut the release. Do not leave a partial release behind.
 
 ## Common failure
 
-- npm published, but the tag or GitHub release is stale.
-  Fix: always finish the tag/release steps before announcing.
+- The tag exists, but the GitHub release is missing assets or installer smoke was skipped.
+  Fix: always finish the asset upload and install smoke before announcing.

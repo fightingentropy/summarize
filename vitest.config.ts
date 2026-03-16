@@ -23,27 +23,27 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: /^ai-summary\/content$/,
+        find: /^summarize\/content$/,
         replacement: resolve(rootDir, "src/content/index.ts"),
       },
       {
-        find: /^ai-summary\/content\/url$/,
+        find: /^summarize\/content\/url$/,
         replacement: resolve(rootDir, "src/content/url.ts"),
       },
       {
-        find: /^ai-summary\/prompts$/,
+        find: /^summarize\/prompts$/,
         replacement: resolve(rootDir, "src/prompts/index.ts"),
       },
       {
-        find: /^ai-summary\/language$/,
+        find: /^summarize\/language$/,
         replacement: resolve(rootDir, "src/language.ts"),
       },
       {
-        find: /^ai-summary\/processes$/,
+        find: /^summarize\/processes$/,
         replacement: resolve(rootDir, "src/processes.ts"),
       },
       {
-        find: /^ai-summary$/,
+        find: /^summarize$/,
         replacement: resolve(rootDir, "src/index.ts"),
       },
     ],

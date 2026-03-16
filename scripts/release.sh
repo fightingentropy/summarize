@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ai-summary release helper (npm)
-# Phases: gates | build | verify | publish | smoke | tag | all
-
-# npm@11 warns on unknown env configs; keep CI/logs clean.
-unset npm_config_manage_package_manager_versions || true
+# summarize release helper (GitHub)
+# Phases: gates | build | tag | release | all
 
 PHASE="${1:-all}"
 
@@ -18,11 +15,54 @@ run() {
   "$@"
 }
 
+fail() {
+  echo "$*" >&2
+  exit 1
+}
+
 require_clean_git() {
   if ! git diff --quiet || ! git diff --cached --quiet; then
-    echo "Git working tree is dirty. Commit or stash before releasing."
-    exit 1
+    fail "Git working tree is dirty. Commit or stash before releasing."
   fi
+}
+
+package_version() {
+  node -p 'require("./package.json").version'
+}
+
+tag_name() {
+  printf 'v%s\n' "$(package_version)"
+}
+
+asset_paths() {
+  local version
+  version="$(package_version)"
+  printf '%s\n' \
+    "dist-bun/summarize-macos-arm64-v${version}.tar.gz" \
+    "dist-bun/summarize-macos-arm64-v${version}.tar.gz.sha256" \
+    "dist-bun/summarize-macos-x64-v${version}.tar.gz" \
+    "dist-bun/summarize-macos-x64-v${version}.tar.gz.sha256"
+}
+
+require_release_assets() {
+  local asset
+  while IFS= read -r asset; do
+    [ -f "$asset" ] || fail "Missing release asset: $asset"
+  done < <(asset_paths)
+}
+
+release_notes_file() {
+  local version notes
+  version="$(package_version)"
+  notes="$(mktemp)"
+  awk -v start="$version" '
+    BEGIN { p=0 }
+    $0 ~ ("^## " start " ") { p=1; next }
+    p && /^## / { exit }
+    p { print }
+  ' CHANGELOG.md > "$notes"
+  [ -s "$notes" ] || fail "Could not extract release notes for ${version} from CHANGELOG.md"
+  printf '%s\n' "$notes"
 }
 
 phase_gates() {
@@ -34,76 +74,63 @@ phase_gates() {
 phase_build() {
   banner "Build"
   run bun run build
-}
-
-phase_verify_pack() {
-  banner "Verify pack"
-  local version tmp_dir tarball install_dir
-  version="$(node -p 'require("./package.json").version')"
-  tmp_dir="$(mktemp -d)"
-  tarball="${tmp_dir}/ai-summary-${version}.tgz"
-  run bun pm pack --destination "${tmp_dir}"
-  if [ ! -f "${tarball}" ]; then
-    echo "Missing ${tarball}"
-    exit 1
-  fi
-  install_dir="${tmp_dir}/install"
-  run mkdir -p "${install_dir}"
-  run npm install --prefix "${install_dir}" "${tarball}"
-  run node "${install_dir}/node_modules/ai-summary/dist/cli.js" --help >/dev/null
-  echo "ok"
-}
-
-phase_publish() {
-  banner "Publish to npm"
-  require_clean_git
-  run bun publish --tag latest --access public
-}
-
-phase_smoke() {
-  banner "Smoke"
-  run npm view ai-summary version
-  local version
-  version="$(node -p 'require("./package.json").version')"
-  run bash -c "bunx ai-summary@${version} --help >/dev/null"
-  echo "ok"
+  run bun run build:bun:test
 }
 
 phase_tag() {
+  local tag
   banner "Tag"
   require_clean_git
-  local version
-  version="$(node -p 'require("./package.json").version')"
-  run git tag -a "v${version}" -m "v${version}"
-  run git push --tags
+  tag="$(tag_name)"
+  if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+    fail "Tag already exists: ${tag}"
+  fi
+  run git push origin HEAD
+  run git tag -a "${tag}" -m "${tag}"
+  run git push origin "${tag}"
+}
+
+phase_release() {
+  local tag notes version
+  banner "GitHub release"
+  require_clean_git
+  require_release_assets
+  tag="$(tag_name)"
+  version="$(package_version)"
+  if gh release view "${tag}" >/dev/null 2>&1; then
+    fail "GitHub release already exists: ${tag}"
+  fi
+  notes="$(release_notes_file)"
+  run gh release create "${tag}" \
+    "dist-bun/summarize-macos-arm64-v${version}.tar.gz" \
+    "dist-bun/summarize-macos-arm64-v${version}.tar.gz.sha256" \
+    "dist-bun/summarize-macos-x64-v${version}.tar.gz" \
+    "dist-bun/summarize-macos-x64-v${version}.tar.gz.sha256" \
+    --title "${tag}" \
+    --notes-file "${notes}"
+  rm -f "${notes}"
 }
 
 case "$PHASE" in
   gates) phase_gates ;;
   build) phase_build ;;
-  verify) phase_verify_pack ;;
-  publish) phase_publish ;;
-  smoke) phase_smoke ;;
   tag) phase_tag ;;
+  release) phase_release ;;
   all)
     phase_gates
     phase_build
-    phase_verify_pack
-    phase_publish
-    phase_smoke
     phase_tag
+    phase_release
     ;;
   *)
     echo "Usage: scripts/release.sh [phase]"
     echo
     echo "Phases:"
     echo "  gates     bun run check"
-    echo "  build     bun run build"
-    echo "  verify    pack + install tarball + --help"
-    echo "  publish   bun publish --tag latest --access public"
-    echo "  smoke     npm view + bunx ai-summary --help"
-    echo "  tag       git tag vX.Y.Z + push tags"
-    echo "  all       gates + build + verify + publish + smoke + tag"
+    echo "  build     bun run build + bun run build:bun:test"
+    echo "  tag       push HEAD + create/push vX.Y.Z tag"
+    echo "  release   gh release create with Bun tarballs + sha256 assets"
+    echo "  all       gates + build + tag + release"
     exit 2
     ;;
 esac

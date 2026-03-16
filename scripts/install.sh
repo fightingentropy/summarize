@@ -7,9 +7,6 @@ INSTALL_DIR="${SUMMARIZE_INSTALL_DIR:-$HOME/.local/bin}"
 RELEASE_BASE_URL="${SUMMARIZE_RELEASE_BASE_URL:-}"
 VERSION="${SUMMARIZE_VERSION:-}"
 TARGET="${SUMMARIZE_TARGET:-}"
-PRIMARY_BINARY="${SUMMARIZE_BINARY_NAME:-summarize}"
-ALIASES="${SUMMARIZE_ALIASES:-ai-summary,summarizer}"
-INSTALL_ALIASES="${SUMMARIZE_INSTALL_ALIASES:-1}"
 ARCHIVE_BINARY="summarize"
 
 log() {
@@ -25,14 +22,6 @@ cleanup() {
   if [[ -n "${TMP_DIR:-}" && -d "${TMP_DIR:-}" ]]; then
     rm -rf "$TMP_DIR"
   fi
-}
-
-trim() {
-  local value
-  value="$1"
-  value="${value#"${value%%[![:space:]]*}"}"
-  value="${value%"${value##*[![:space:]]}"}"
-  printf '%s' "$value"
 }
 
 detect_target() {
@@ -91,28 +80,10 @@ verify_checksum() {
 install_primary_binary() {
   local source target
   source="$1"
-  target="${INSTALL_DIR}/${PRIMARY_BINARY}"
+  target="${INSTALL_DIR}/${ARCHIVE_BINARY}"
   [[ -f "$source" ]] || fail "release archive is missing ${ARCHIVE_BINARY}"
   install -m 755 "$source" "$target"
   log "installed ${target}"
-}
-
-install_aliases() {
-  local alias target
-  case "$INSTALL_ALIASES" in
-    0|false|FALSE|False|no|NO|No)
-      return
-      ;;
-  esac
-  IFS=',' read -r -a alias_list <<< "$ALIASES"
-  for alias in "${alias_list[@]}"; do
-    alias="$(trim "$alias")"
-    [[ -n "$alias" ]] || continue
-    [[ "$alias" != "$PRIMARY_BINARY" ]] || continue
-    target="${INSTALL_DIR}/${alias}"
-    ln -sfn "$PRIMARY_BINARY" "$target"
-    log "linked ${target} -> ${PRIMARY_BINARY}"
-  done
 }
 
 print_path_hint() {
@@ -172,7 +143,6 @@ verify_checksum "$ARCHIVE_PATH" "$CHECKSUM_PATH"
 
 tar -xzf "$ARCHIVE_PATH" -C "$TMP_DIR"
 install_primary_binary "$EXTRACTED_BINARY"
-install_aliases
 print_path_hint
 
 log

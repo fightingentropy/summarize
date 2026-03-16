@@ -33,7 +33,7 @@ Summarize is a Bun-native CLI app for extracting content and generating summarie
 
 ### Install
 
-Built with Bun. For package installs and `npx`, requires Node 22+.
+Built with Bun. The installer downloads a compiled binary, so it does not require Node or npm.
 
 - One-command install (compiled Bun binary for macOS):
 
@@ -41,8 +41,7 @@ Built with Bun. For package installs and `npx`, requires Node 22+.
 curl -fsSL https://raw.githubusercontent.com/fightingentropy/summarize/main/scripts/install.sh | bash
 ```
 
-By default that installs `summarize` plus `ai-summary` and `summarizer` aliases into
-`~/.local/bin`.
+By default that installs `summarize` into `~/.local/bin`.
 
 Useful overrides:
 
@@ -51,28 +50,6 @@ Useful overrides:
 - `SUMMARIZE_GITHUB_REPO=fightingentropy/summarize`
 
 Current release installer targets macOS arm64 and x64.
-
-- npx (no install):
-
-```bash
-npx -y ai-summary "https://example.com"
-```
-
-- npm (global):
-
-```bash
-npm i -g ai-summary
-```
-
-- npm (library / minimal deps):
-
-```bash
-npm i ai-summary
-```
-
-```ts
-import { createLinkPreviewClient } from "ai-summary/content";
-```
 
 ### Optional local dependencies
 
@@ -674,18 +651,6 @@ The CLI uses the LiteLLM model catalog for model limits (like max output tokens)
 
 - Downloaded from: `https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json`
 - Cached at: `~/.summarize/cache/`
-
-### Library usage (optional)
-
-Recommended (minimal deps):
-
-- `ai-summary/content`
-- `ai-summary/prompts`
-
-Compatibility (pulls in CLI deps):
-
-- `ai-summary/content`
-- `ai-summary/prompts`
 
 ### Development
 

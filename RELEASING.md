@@ -1,124 +1,64 @@
-# Releasing `ai-summary` (npm + GitHub)
+# Releasing `summarize` (GitHub)
 
 Ship is **not done** until:
 
-- npm is published
 - the release tag is pushed
-- GitHub release notes/assets are published if you are using GitHub Releases
+- the GitHub release is published
+- the Bun installer assets are attached
 
 ## Version sources (keep in sync)
 
 - `package.json` `version`
 - `src/version.ts` `FALLBACK_VERSION` (needed for the Bun-compiled binary; it can’t read `package.json`)
 
-## Fast path (recommended)
+## Fast path
 
 0. Preflight
    - Clean git: `git status`
-   - Auth: `gh auth status`, `npm whoami`
+   - Auth: `gh auth status`
 
 1. Bump version + notes
-   - Update version in:
+   - Update:
      - `package.json`
-     - `src/version.ts` (`FALLBACK_VERSION`)
-   - Update `CHANGELOG.md` (set the date + bullet notes under the new version header)
+     - `src/version.ts`
+   - Update `CHANGELOG.md` with the release date and notes
 
-2. Gates (no warnings)
-   - `bun install`
+2. Run the helper
+
+   ```bash
+   scripts/release.sh all
+   ```
+
+   That does:
    - `bun run check`
    - `bun run build`
-
-3. Build Bun artifact (prints sha256 + creates tarball)
    - `bun run build:bun:test`
-   - Artifacts:
-     - `dist-bun/summarize-macos-arm64-v<ver>.tar.gz`
-     - `dist-bun/summarize-macos-arm64-v<ver>.tar.gz.sha256`
-     - `dist-bun/summarize-macos-x64-v<ver>.tar.gz`
-     - `dist-bun/summarize-macos-x64-v<ver>.tar.gz.sha256`
+   - `git push origin HEAD`
+   - create/push `v<ver>`
+   - `gh release create` with the Bun tarballs and `.sha256` files
 
-4. Tag
+## Release assets
 
-   ```bash
-   ver="$(node -p 'require(\"./package.json\").version')"
-   git tag -a "v${ver}" -m "v${ver}"
-   git push --tags
-   ```
+For version `<ver>`, the release must include:
 
-5. Optional GitHub Release + assets
+- `dist-bun/summarize-macos-arm64-v<ver>.tar.gz`
+- `dist-bun/summarize-macos-arm64-v<ver>.tar.gz.sha256`
+- `dist-bun/summarize-macos-x64-v<ver>.tar.gz`
+- `dist-bun/summarize-macos-x64-v<ver>.tar.gz.sha256`
 
-   ```bash
-   ver="$(node -p 'require(\"./package.json\").version')"
+## Manual path
 
-   # Notes = full changelog section(s), but without a duplicated version header.
-   # If you skipped GitHub Releases for some versions, set prev to the last released version
-   # and include all sections since then.
-   prev="0.6.1"
+If you need to run the steps separately:
 
-   awk -v start="$ver" -v stop="$prev" '
-     BEGIN { p=0 }
-     $0 ~ ("^## " start " ") { p=1; next }
-     $0 ~ ("^## " stop " ") { p=0 }
-     p { print }
-   ' CHANGELOG.md >"/tmp/summarize-v${ver}-notes.md"
+```bash
+scripts/release.sh gates
+scripts/release.sh build
+scripts/release.sh tag
+scripts/release.sh release
+```
 
-   gh release create "v${ver}" \
-     "dist-bun/summarize-macos-arm64-v${ver}.tar.gz" \
-     "dist-bun/summarize-macos-arm64-v${ver}.tar.gz.sha256" \
-     "dist-bun/summarize-macos-x64-v${ver}.tar.gz" \
-     "dist-bun/summarize-macos-x64-v${ver}.tar.gz.sha256" \
-     --title "v${ver}" \
-     --notes-file "/tmp/summarize-v${ver}-notes.md"
-   ```
+## Verify
 
-   - Verify notes render (real newlines): `gh release view v<ver> --json body --jq .body`
-
-6. Publish to npm + smoke
-   - If npm asks for OTP:
-     - `npm_config_auth_type=legacy bun publish --tag latest --access public --otp <otp>`
-   - Otherwise:
-     - `bun publish --tag latest --access public`
-   - If the CLI forces browser auth, prefer the legacy path above by sourcing `~/.profile`
-     (must include `NODE_AUTH_TOKEN`) before running the publish command.
-   - Smoke:
-     ```bash
-     ver="$(node -p 'require(\"./package.json\").version')"
-     npm view ai-summary version
-     bunx ai-summary@"${ver}" --version
-     bunx ai-summary@"${ver}" --help >/dev/null
-     ```
-
-## npm (npmjs)
-
-Notes:
-
-- npm may prompt for browser auth when `npm config get auth-type` is `web`. For scripted publishes, use `npm_config_auth_type=legacy` + `--otp`.
-- `prepare` runs `bun run build` automatically during publish.
-
-Helper (npm-only): `scripts/release.sh` (phases: `gates|build|publish|smoke|tag|all`).
-
-## Optional Bun binary release
-
-If you want a compiled macOS binary attached to a GitHub release:
-
-1. Build the Bun artifact
-   - `bun run build:bun`
-   - This uses `bun build --compile --bytecode` and prints the tarball sha256.
-
-2. Smoke test locally (before uploading)
-   - `dist-bun/summarize --version`
-   - `dist-bun/summarize --help`
-   - Optional: run one real file/link summary.
-
-3. GitHub Release (when approved)
-   - Create a release for tag `v<ver>` with clean notes (no duplicated version header inside the notes body):
-     - Prefer `--title "v<ver>"` and `--notes-file …` (avoid pasting text with escaped `\\n`)
-     - Notes should start with sections like `### Changes`, not `## v<ver>` (the release already has a title)
-   - Upload:
-     - `dist-bun/summarize-macos-arm64-v<ver>.tar.gz`
-     - `dist-bun/summarize-macos-arm64-v<ver>.tar.gz.sha256`
-     - `dist-bun/summarize-macos-x64-v<ver>.tar.gz`
-     - `dist-bun/summarize-macos-x64-v<ver>.tar.gz.sha256`
-   - Smoke the installer against the new tag:
-     - `curl -fsSL https://raw.githubusercontent.com/fightingentropy/summarize/main/scripts/install.sh | SUMMARIZE_VERSION=v<ver> bash`
-   - Verify notes render correctly:
-     - `gh release view v<ver> --json body --jq .body` (should show real newlines, not literal `\\n`)
+- `gh release view v<ver> --json body,assets --jq .body`
+- `gh release view v<ver> --json assets --jq '.assets[].name'`
+- `curl -fsSL https://raw.githubusercontent.com/fightingentropy/summarize/main/scripts/install.sh | SUMMARIZE_VERSION=v<ver> bash`
