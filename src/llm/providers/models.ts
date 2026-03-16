@@ -23,7 +23,7 @@ export function resolveOpenAiModel({
   const headers = openaiConfig.isOpenRouter
     ? {
         ...(base?.headers ?? {}),
-        "HTTP-Referer": "https://github.com/erlinhoxha/ai-summary",
+        "HTTP-Referer": "https://github.com/fightingentropy/summarize",
         "X-Title": "summarize",
       }
     : base?.headers;

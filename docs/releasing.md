@@ -16,6 +16,7 @@
 
 1. `scripts/release.sh all` (gates → build → verify → publish → smoke → tag).
 2. Create a GitHub release for the new tag if you want release notes/assets.
+   Include the Bun tarballs and matching `.sha256` files so the one-command installer keeps working.
 3. Verify `npm view ai-summary version` matches the version you just published.
 4. If anything fails, fix it and re-cut the release. Do not leave a partial release behind.
 

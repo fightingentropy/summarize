@@ -35,6 +35,23 @@ Summarize is a Bun-native CLI app for extracting content and generating summarie
 
 Built with Bun. For package installs and `npx`, requires Node 22+.
 
+- One-command install (compiled Bun binary for macOS):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/fightingentropy/summarize/main/scripts/install.sh | bash
+```
+
+By default that installs `summarize` plus `ai-summary` and `summarizer` aliases into
+`~/.local/bin`.
+
+Useful overrides:
+
+- `SUMMARIZE_INSTALL_DIR=/usr/local/bin`
+- `SUMMARIZE_VERSION=v0.12.0`
+- `SUMMARIZE_GITHUB_REPO=fightingentropy/summarize`
+
+Current release installer targets macOS arm64 and x64.
+
 - npx (no install):
 
 ```bash

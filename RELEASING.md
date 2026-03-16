@@ -30,7 +30,11 @@ Ship is **not done** until:
 
 3. Build Bun artifact (prints sha256 + creates tarball)
    - `bun run build:bun:test`
-   - Artifact: `dist-bun/summarize-macos-arm64-v<ver>.tar.gz`
+   - Artifacts:
+     - `dist-bun/summarize-macos-arm64-v<ver>.tar.gz`
+     - `dist-bun/summarize-macos-arm64-v<ver>.tar.gz.sha256`
+     - `dist-bun/summarize-macos-x64-v<ver>.tar.gz`
+     - `dist-bun/summarize-macos-x64-v<ver>.tar.gz.sha256`
 
 4. Tag
 
@@ -59,6 +63,9 @@ Ship is **not done** until:
 
    gh release create "v${ver}" \
      "dist-bun/summarize-macos-arm64-v${ver}.tar.gz" \
+     "dist-bun/summarize-macos-arm64-v${ver}.tar.gz.sha256" \
+     "dist-bun/summarize-macos-x64-v${ver}.tar.gz" \
+     "dist-bun/summarize-macos-x64-v${ver}.tar.gz.sha256" \
      --title "v${ver}" \
      --notes-file "/tmp/summarize-v${ver}-notes.md"
    ```
@@ -106,6 +113,12 @@ If you want a compiled macOS binary attached to a GitHub release:
    - Create a release for tag `v<ver>` with clean notes (no duplicated version header inside the notes body):
      - Prefer `--title "v<ver>"` and `--notes-file …` (avoid pasting text with escaped `\\n`)
      - Notes should start with sections like `### Changes`, not `## v<ver>` (the release already has a title)
-   - Upload `dist-bun/summarize-macos-arm64-v<ver>.tar.gz`
+   - Upload:
+     - `dist-bun/summarize-macos-arm64-v<ver>.tar.gz`
+     - `dist-bun/summarize-macos-arm64-v<ver>.tar.gz.sha256`
+     - `dist-bun/summarize-macos-x64-v<ver>.tar.gz`
+     - `dist-bun/summarize-macos-x64-v<ver>.tar.gz.sha256`
+   - Smoke the installer against the new tag:
+     - `curl -fsSL https://raw.githubusercontent.com/fightingentropy/summarize/main/scripts/install.sh | SUMMARIZE_VERSION=v<ver> bash`
    - Verify notes render correctly:
      - `gh release view v<ver> --json body --jq .body` (should show real newlines, not literal `\\n`)

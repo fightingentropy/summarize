@@ -6,17 +6,26 @@
 
 // Don't use Bun shell ($) as it breaks bytecode compilation.
 import { spawn, spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, statSync } from "node:fs";
+import { createHash } from "node:crypto";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 const projectRoot = join(import.meta.dir, "..");
 const distDir = join(projectRoot, "dist-bun");
 const require = createRequire(import.meta.url);
 const MAC_TARGETS = [
-  { arch: "arm64", target: "bun-darwin-arm64", outName: "summarize" },
-  { arch: "x64", target: "bun-darwin-x64", outName: "summarize-x64" },
+  { arch: "arm64", archiveTarget: "macos-arm64", target: "bun-darwin-arm64", outName: "summarize" },
+  { arch: "x64", archiveTarget: "macos-x64", target: "bun-darwin-x64", outName: "summarize-x64" },
 ];
 
 function run(cmd, args, opts = {}) {
@@ -76,6 +85,19 @@ function chmodX(path) {
   run("chmod", ["+x", path]);
 }
 
+function computeSha256(path) {
+  const hash = createHash("sha256");
+  hash.update(readFileSync(path));
+  return hash.digest("hex");
+}
+
+function writeChecksumFile(artifactPath) {
+  const checksumPath = `${artifactPath}.sha256`;
+  const sha = computeSha256(artifactPath);
+  writeFileSync(checksumPath, `${sha}  ${basename(artifactPath)}\n`);
+  return { sha, checksumPath };
+}
+
 function buildOne({ target, outName, version, gitSha }) {
   const outPath = join(distDir, outName);
   console.log(`\n🔨 Building ${outName} (target=${target}, bytecode)…`);
@@ -106,32 +128,33 @@ function buildOne({ target, outName, version, gitSha }) {
   return outPath;
 }
 
-function packageTarball({ binaryPath, version, arch }) {
+function packageTarball({ binaryPath, version, arch, archiveTarget }) {
   const stageDir = mkdtempSync(join(tmpdir(), `summarize-bun-${arch}-`));
   const stagedBinary = join(stageDir, "summarize");
   copyFileSync(binaryPath, stagedBinary);
   chmodX(stagedBinary);
 
-  const tarName = `summarize-macos-${arch}-v${version}.tar.gz`;
+  const tarName = `summarize-${archiveTarget}-v${version}.tar.gz`;
   const tarPath = join(distDir, tarName);
   console.log(`\n📦 Packaging tarball (${arch})…`);
   run("tar", ["-czf", tarPath, "-C", stageDir, "summarize"]);
-  return tarPath;
+  const checksum = writeChecksumFile(tarPath);
+  return { tarPath, checksum };
 }
 
 function buildMacosTargets({ version }) {
   const gitSha = readGitSha();
   const builds = {};
 
-  for (const { arch, target, outName } of MAC_TARGETS) {
+  for (const { arch, archiveTarget, target, outName } of MAC_TARGETS) {
     const binary = buildOne({ target, outName, version, gitSha });
-    const tarPath = packageTarball({ binaryPath: binary, version, arch });
-    builds[arch] = { binary, tarPath };
+    const packaged = packageTarball({ binaryPath: binary, version, arch, archiveTarget });
+    builds[arch] = { binary, ...packaged };
   }
 
   console.log("\n🔐 sha256:");
   for (const { arch } of MAC_TARGETS) {
-    run("shasum", ["-a", "256", builds[arch].tarPath]);
+    console.log(`${builds[arch].checksum.sha}  ${basename(builds[arch].tarPath)}`);
   }
 
   return builds;
