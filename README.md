@@ -46,7 +46,7 @@ By default that installs `summarize` into `~/.local/bin`.
 Useful overrides:
 
 - `SUMMARIZE_INSTALL_DIR=/usr/local/bin`
-- `SUMMARIZE_VERSION=v0.12.0`
+- `SUMMARIZE_VERSION=v0.12.1`
 - `SUMMARIZE_GITHUB_REPO=fightingentropy/summarize`
 
 Current release installer targets: macOS Apple Silicon and Linux x64.

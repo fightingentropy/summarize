@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.1 - 2026-03-16
+
+### Fixes
+
+- Release: ship Linux x64 Bun tarballs alongside macOS Apple Silicon, update the one-command installer to target those release assets, and clean `dist-bun/` before packaging so stale target artifacts do not leak into a release.
+
 ## 0.12.0 - 2026-03-16
 
 ### Features
