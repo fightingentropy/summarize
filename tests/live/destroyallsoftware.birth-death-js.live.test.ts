@@ -55,7 +55,7 @@ const LIVE = process.env.SUMMARIZE_LIVE_TEST === "1";
     });
 
     const url = "https://www.destroyallsoftware.com/talks/the-birth-and-death-of-javascript";
-    await runCli(["--json", "--extract-only", "--video-mode", "transcript", url], {
+    await runCli(["--json", "--extract", "--video-mode", "transcript", url], {
       env: { ...process.env },
       fetch: globalThis.fetch.bind(globalThis),
       stdout,

@@ -3,42 +3,42 @@ import type { AutoRule, AutoRuleKind, SummarizeConfig } from "./config.js";
 export const DEFAULT_RULES: AutoRule[] = [
   {
     when: ["video"],
-    candidates: ["google/gemini-3-flash", "google/gemini-2.5-flash-lite-preview-09-2025"],
+    candidates: ["google/gemini-3-flash"],
   },
   {
     when: ["image"],
-    candidates: ["openai/gpt-5-mini", "google/gemini-3-flash", "anthropic/claude-sonnet-4-5"],
+    candidates: ["openai/gpt-5.4-mini", "google/gemini-3-flash", "anthropic/claude-sonnet-4-6"],
   },
   {
     when: ["website", "youtube", "text"],
     bands: [
       {
         token: { max: 50_000 },
-        candidates: ["openai/gpt-5-mini", "google/gemini-3-flash", "anthropic/claude-sonnet-4-5"],
+        candidates: ["openai/gpt-5.4-mini", "google/gemini-3-flash", "anthropic/claude-sonnet-4-6"],
       },
       {
         token: { max: 200_000 },
-        candidates: ["openai/gpt-5-mini", "google/gemini-3-flash", "anthropic/claude-sonnet-4-5"],
+        candidates: ["openai/gpt-5.4-mini", "google/gemini-3-flash", "anthropic/claude-sonnet-4-6"],
       },
       {
         candidates: [
-          "openai/gpt-5-mini",
+          "openai/gpt-5.4-mini",
           "xai/grok-4-fast-non-reasoning",
           "google/gemini-3-flash",
-          "anthropic/claude-sonnet-4-5",
+          "anthropic/claude-sonnet-4-6",
         ],
       },
     ],
   },
   {
     when: ["file"],
-    candidates: ["openai/gpt-5-mini", "google/gemini-3-flash", "anthropic/claude-sonnet-4-5"],
+    candidates: ["openai/gpt-5.4-mini", "google/gemini-3-flash", "anthropic/claude-sonnet-4-6"],
   },
   {
     candidates: [
-      "openai/gpt-5-mini",
+      "openai/gpt-5.4-mini",
       "google/gemini-3-flash",
-      "anthropic/claude-sonnet-4-5",
+      "anthropic/claude-sonnet-4-6",
       "xai/grok-4-fast-non-reasoning",
     ],
   },

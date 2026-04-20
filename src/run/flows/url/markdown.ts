@@ -105,7 +105,7 @@ export function createMarkdownConverters(
     }
     if (ctx.model.apiStatus.apiKey) {
       return {
-        llmModelId: "openai/gpt-5-mini",
+        llmModelId: "openai/gpt-5.4-mini",
         forceOpenRouter: false,
         requiredEnv: "OPENAI_API_KEY",
         forceChatCompletions: ctx.model.openaiUseChatCompletions,
@@ -113,14 +113,14 @@ export function createMarkdownConverters(
     }
     if (ctx.model.apiStatus.openrouterConfigured) {
       return {
-        llmModelId: "openai/openai/gpt-5-mini",
+        llmModelId: "openai/openai/gpt-5.4-mini",
         forceOpenRouter: true,
         requiredEnv: "OPENROUTER_API_KEY",
       };
     }
     if (ctx.model.apiStatus.anthropicConfigured) {
       return {
-        llmModelId: "anthropic/claude-sonnet-4-5",
+        llmModelId: "anthropic/claude-sonnet-4-6",
         forceOpenRouter: false,
         requiredEnv: "ANTHROPIC_API_KEY",
       };

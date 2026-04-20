@@ -142,7 +142,7 @@ describe("cli --json", () => {
     });
 
     await runCli(
-      ["--json", "--extract-only", "--length", "xxl", "--timeout", "2s", "https://example.com"],
+      ["--json", "--extract", "--length", "xxl", "--timeout", "2s", "https://example.com"],
       {
         env: { HOME: home },
         fetch: fetchMock as unknown as typeof fetch,

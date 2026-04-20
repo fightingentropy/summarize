@@ -55,32 +55,7 @@ describe("cli error handling", () => {
     );
   });
 
-  it("still accepts the deprecated --firecrawl alias", async () => {
-    const html = `<!doctype html><html><head><title>Ok</title></head><body><article><p>${"A".repeat(
-      260,
-    )}</p></article></body></html>`;
-
-    const fetchMock = vi.fn(async () => new Response(html, { status: 200 }));
-
-    let stdoutText = "";
-    const stdout = new Writable({
-      write(chunk, _encoding, callback) {
-        stdoutText += chunk.toString();
-        callback();
-      },
-    });
-
-    await runCli(["--extract", "--firecrawl", "off", "https://example.com"], {
-      env: { HOME: home },
-      fetch: fetchMock as unknown as typeof fetch,
-      stdout,
-      stderr: noopStream(),
-    });
-
-    expect(stdoutText).toContain("A".repeat(50));
-  });
-
-  it("errors when --markdown llm is set without any LLM keys", async () => {
+  it("errors when --markdown-mode llm is set without any LLM keys", async () => {
     await expect(
       runCli(["--format", "md", "--markdown-mode", "llm", "--extract", "https://example.com"], {
         env: { HOME: home },
@@ -93,7 +68,7 @@ describe("cli error handling", () => {
     ).rejects.toThrow(/--markdown-mode llm requires GEMINI_API_KEY/);
   });
 
-  it("does not error for --markdown auto without keys", async () => {
+  it("does not error for --markdown-mode auto without keys", async () => {
     const html = `<!doctype html><html><head><title>Ok</title></head><body><article><p>${"A".repeat(
       260,
     )}</p></article></body></html>`;
@@ -185,7 +160,7 @@ describe("cli error handling", () => {
     const fetchMock = vi.fn(async () => new Response("nope", { status: 404 }));
 
     await expect(
-      runCli(["--extract-only", "https://x.com/user/status/123"], {
+      runCli(["--extract", "https://x.com/user/status/123"], {
         env: { HOME: home, PATH: "" },
         fetch: fetchMock as unknown as typeof fetch,
         stdout: noopStream(),
@@ -210,7 +185,7 @@ describe("cli error handling", () => {
     });
 
     await expect(
-      runCli(["--extract-only", tweetUrl], {
+      runCli(["--extract", tweetUrl], {
         env: { HOME: home, PATH: "" },
         fetch: fetchMock as unknown as typeof fetch,
         stdout: noopStream(),

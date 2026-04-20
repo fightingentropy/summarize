@@ -81,7 +81,7 @@ export function resolveRunnerFlags({
   const languageExplicitlySet = hasFlag(normalizedArgv, "--language", "--lang");
   const noCacheFlag = programOpts.cache === false;
   const noMediaCacheFlag = programOpts.mediaCache === false;
-  const extractMode = Boolean(programOpts.extract) || Boolean(programOpts.extractOnly);
+  const extractMode = Boolean(programOpts.extract);
   const json = Boolean(programOpts.json);
   const forceSummary = Boolean(programOpts.forceSummary);
   const slidesDebug = Boolean(programOpts.slidesDebug);
@@ -113,23 +113,15 @@ export function resolveRunnerFlags({
     formatExplicitlySet ? (rawFormatOpt ?? "text") : extractMode && !isYoutubeUrl ? "md" : "text",
   );
 
-  const websiteScrapeExplicitlySet = hasFlag(normalizedArgv, "--website-scrape");
-  const firecrawlExplicitlySet = hasFlag(normalizedArgv, "--firecrawl");
   const rawWebsiteScrapeOpt =
     typeof programOpts.websiteScrape === "string" ? programOpts.websiteScrape : null;
-  const rawFirecrawlOpt = typeof programOpts.firecrawl === "string" ? programOpts.firecrawl : null;
-  const websiteScrapeModeArg = websiteScrapeExplicitlySet
-    ? (rawWebsiteScrapeOpt ?? "auto")
-    : firecrawlExplicitlySet
-      ? (rawFirecrawlOpt ?? "auto")
-      : (rawWebsiteScrapeOpt ?? "auto");
+  const websiteScrapeModeArg = rawWebsiteScrapeOpt ?? "auto";
 
   const runSettings = resolveCliRunSettings({
     length: String(programOpts.length),
     websiteScrape: websiteScrapeModeArg,
     markdownMode:
       typeof programOpts.markdownMode === "string" ? programOpts.markdownMode : undefined,
-    markdown: typeof programOpts.markdown === "string" ? programOpts.markdown : undefined,
     format,
     preprocess: String(programOpts.preprocess),
     youtube: String(programOpts.youtube),
@@ -181,6 +173,6 @@ export function resolveRunnerFlags({
     metricsEnabled,
     metricsDetailed,
     shouldComputeReport: metricsEnabled,
-    markdownModeExplicitlySet: hasFlag(normalizedArgv, "--markdown-mode", "--markdown"),
+    markdownModeExplicitlySet: hasFlag(normalizedArgv, "--markdown-mode"),
   };
 }

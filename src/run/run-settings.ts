@@ -109,7 +109,6 @@ export function resolveCliRunSettings({
   length,
   websiteScrape,
   markdownMode,
-  markdown,
   format,
   preprocess,
   youtube,
@@ -120,7 +119,6 @@ export function resolveCliRunSettings({
   length: string;
   websiteScrape: string;
   markdownMode?: string | undefined;
-  markdown?: string | undefined;
   format: "text" | "markdown";
   preprocess: string;
   youtube: string;
@@ -131,8 +129,7 @@ export function resolveCliRunSettings({
   const strictOverrides = resolveRunOverrides(
     {
       websiteScrape,
-      markdownMode:
-        format === "markdown" ? ((markdownMode ?? markdown ?? "readability") as string) : "off",
+      markdownMode: format === "markdown" ? (markdownMode ?? "readability") : "off",
       preprocess,
       youtube,
       timeout,

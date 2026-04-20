@@ -7,10 +7,10 @@ import { runCli } from "../src/run.js";
 
 vi.mock("../src/llm/generate-text.js", () => ({
   generateTextWithModelId: vi.fn(async ({ modelId }: { modelId: string }) => {
-    expect(modelId).toBe("openai/gpt-5-mini");
+    expect(modelId).toBe("openai/gpt-5.4-mini");
     return {
       provider: "openai",
-      canonicalModelId: "openai/gpt-5-mini",
+      canonicalModelId: "openai/gpt-5.4-mini",
       usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
       text: "# Converted\n\nHello\n",
     };
@@ -37,7 +37,7 @@ describe("cli --extract finish line includes model when LLM ran", () => {
     writeFileSync(
       join(cacheDir, "litellm-model_prices_and_context_window.json"),
       JSON.stringify({
-        "gpt-5-mini": { input_cost_per_token: 0.000001, output_cost_per_token: 0.000001 },
+        "gpt-5.4-mini": { input_cost_per_token: 0.000001, output_cost_per_token: 0.000001 },
       }),
       "utf8",
     );
@@ -81,7 +81,7 @@ describe("cli --extract finish line includes model when LLM ran", () => {
     expect(stdout.getText()).toContain("# Converted");
     const err = stderr.getText();
     expect(err).toContain("markdown via llm");
-    expect(err).toContain("openai/gpt-5-mini");
+    expect(err).toContain("openai/gpt-5.4-mini");
 
     globalFetchSpy.mockRestore();
   });

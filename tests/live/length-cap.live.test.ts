@@ -20,7 +20,7 @@ const LIVE = process.env.SUMMARIZE_LIVE_TEST === "1";
     });
 
     await runCli(
-      ["--json", "--extract-only", "--length", "xxl", "--timeout", "10s", "https://example.com"],
+      ["--json", "--extract", "--length", "xxl", "--timeout", "10s", "https://example.com"],
       {
         env: { ...process.env },
         fetch: globalThis.fetch.bind(globalThis),

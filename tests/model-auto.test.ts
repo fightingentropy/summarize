@@ -399,7 +399,7 @@ describe("auto model selection", () => {
       cliAvailability: { claude: true, codex: true, gemini: true },
     });
 
-    expect(attempts[0]?.userModelId).toBe("openai/gpt-5-mini");
+    expect(attempts[0]?.userModelId).toBe("openai/gpt-5.4-mini");
   });
 
   it("prepends CLI candidates when enabled", () => {

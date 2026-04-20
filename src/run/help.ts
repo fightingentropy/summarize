@@ -52,7 +52,6 @@ export function buildProgram() {
       "Website scraper usage: off, auto (fallback), always (try external website scrapers first).",
       "auto",
     )
-    .addOption(new Option("--firecrawl <mode>", "Deprecated alias for --website-scrape").hideHelp())
     .option(
       "--format <format>",
       "Website/file content format: md|text. For websites: controls the extraction format. For files: controls whether we try to preprocess to Markdown for model compatibility. (default: text; default in --extract mode for URLs: md)",
@@ -71,12 +70,6 @@ export function buildProgram() {
         "--markdown-mode <mode>",
         "Markdown conversion: off, auto, llm (force LLM), readability. For websites: converts HTML→Markdown. For YouTube/transcripts: llm mode formats raw transcripts into clean markdown with headings and paragraphs.",
       ).default("readability"),
-    )
-    .addOption(
-      new Option(
-        "--markdown <mode>",
-        "Deprecated alias for --markdown-mode (use --extract --format md --markdown-mode ...)",
-      ).hideHelp(),
     )
     .option(
       "--length <length>",
@@ -131,7 +124,6 @@ export function buildProgram() {
       ),
     )
     .option("--extract", "Print extracted content and exit (no LLM summary)", false)
-    .addOption(new Option("--extract-only", "Deprecated alias for --extract").hideHelp())
     .option("--json", "Output structured JSON (includes prompt + metrics)", false)
     .option(
       "--stream <mode>",
@@ -247,7 +239,7 @@ ${heading("Examples")}
   ${cmd('summarize "https://www.youtube.com/watch?v=..." --slides --extract')} ${dim("# full transcript + inline slides")}
   ${cmd('summarize slides "https://www.youtube.com/watch?v=..." --render auto')} ${dim("# slides-only mode with inline thumbnails")}
   ${cmd("summarize transcriber setup")} ${dim("# configure local ONNX transcription (parakeet/canary)")}
-  ${cmd('summarize "https://example.com" --length 20k --max-output-tokens 2k --timeout 2m --model openai/gpt-5-mini')}
+  ${cmd('summarize "https://example.com" --length 20k --max-output-tokens 2k --timeout 2m --model openai/gpt-5.4-mini')}
   ${cmd('summarize "https://example.com" --model mymodel')} ${dim("# config preset")}
   ${cmd('summarize "https://example.com" --json --verbose')}
   ${cmd("pbpaste | summarize -")} ${dim("# summarize clipboard content")}

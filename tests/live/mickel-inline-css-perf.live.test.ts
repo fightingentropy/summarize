@@ -29,10 +29,10 @@ const LIVE = process.env.SUMMARIZE_LIVE_TEST === "1";
     await runCli(
       [
         "--json",
-        "--extract-only",
+        "--extract",
         "--format",
         "text",
-        "--firecrawl",
+        "--website-scrape",
         "off",
         "--timeout",
         "60s",

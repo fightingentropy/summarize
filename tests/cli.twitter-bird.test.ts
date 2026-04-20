@@ -108,7 +108,7 @@ describe("cli X status line", () => {
     const stdout = collectStream({ isTTY: false });
     const stderr = collectStream({ isTTY: true });
 
-    await runCli(["--extract-only", "https://x.com/user/status/123"], {
+    await runCli(["--extract", "https://x.com/user/status/123"], {
       env: { HOME: root, PATH: binDir, TERM: "xterm-256color" },
       fetch: vi.fn(async () => {
         throw new Error("unexpected fetch");

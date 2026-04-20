@@ -20,7 +20,7 @@ const LIVE = process.env.SUMMARIZE_LIVE_TEST === "1";
     });
 
     const url = "https://en.wikipedia.org/wiki/Set_(mathematics)";
-    await runCli(["--json", "--extract-only", "--timeout", "20s", url], {
+    await runCli(["--json", "--extract", "--timeout", "20s", url], {
       env: { ...process.env },
       fetch: globalThis.fetch.bind(globalThis),
       stdout,
