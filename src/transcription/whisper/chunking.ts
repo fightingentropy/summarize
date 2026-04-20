@@ -8,12 +8,15 @@ import type {
   WhisperTranscriptionResult,
 } from "./types.js";
 
+const DEFAULT_CHUNK_CONCURRENCY = 4;
+
 export async function transcribeChunkedFile({
   filePath,
   segmentSeconds,
   totalDurationSeconds,
   onProgress,
   transcribeSegment,
+  concurrency,
 }: {
   filePath: string;
   segmentSeconds: number;
@@ -23,6 +26,7 @@ export async function transcribeChunkedFile({
     bytes: Uint8Array;
     filename: string;
   }) => Promise<WhisperTranscriptionResult>;
+  concurrency?: number;
 }): Promise<WhisperTranscriptionResult> {
   const notes: string[] = [];
   const dir = await fs.mkdtemp(join(tmpdir(), "summarize-whisper-segments-"));
@@ -53,33 +57,62 @@ export async function transcribeChunkedFile({
       totalDurationSeconds,
     });
 
-    const parts: string[] = [];
+    const parts: Array<string | null> = new Array(files.length).fill(null);
     let usedProvider: TranscriptionProvider | null = null;
-    for (const [index, name] of files.entries()) {
-      const segmentBytes = new Uint8Array(await fs.readFile(join(dir, name)));
-      const result = await transcribeSegment({
-        bytes: segmentBytes,
-        filename: name,
-      });
-      if (!usedProvider && result.provider) usedProvider = result.provider;
-      if (result.error && !result.text) {
-        return { text: null, provider: usedProvider, error: result.error, notes };
-      }
-      if (result.text) parts.push(result.text);
+    let firstError: Error | null = null;
+    let completed = 0;
+    let nextIndex = 0;
 
-      const processedSeconds = Math.max(0, (index + 1) * segmentSeconds);
-      onProgress?.({
-        partIndex: index + 1,
-        parts: files.length,
-        processedDurationSeconds:
-          typeof totalDurationSeconds === "number" && totalDurationSeconds > 0
-            ? Math.min(processedSeconds, totalDurationSeconds)
-            : null,
-        totalDurationSeconds,
-      });
+    const workerCount = Math.max(
+      1,
+      Math.min(files.length, concurrency ?? DEFAULT_CHUNK_CONCURRENCY),
+    );
+
+    const runWorker = async () => {
+      while (true) {
+        if (firstError) return;
+        const index = nextIndex++;
+        if (index >= files.length) return;
+        const name = files[index]!;
+        let result: WhisperTranscriptionResult;
+        try {
+          const segmentBytes = new Uint8Array(await fs.readFile(join(dir, name)));
+          result = await transcribeSegment({ bytes: segmentBytes, filename: name });
+        } catch (error) {
+          if (!firstError) {
+            firstError = error instanceof Error ? error : new Error(String(error));
+          }
+          return;
+        }
+        if (!usedProvider && result.provider) usedProvider = result.provider;
+        if (result.error && !result.text) {
+          if (!firstError) firstError = result.error;
+          return;
+        }
+        if (result.text) parts[index] = result.text;
+
+        completed += 1;
+        const processedSeconds = Math.max(0, completed * segmentSeconds);
+        onProgress?.({
+          partIndex: completed,
+          parts: files.length,
+          processedDurationSeconds:
+            typeof totalDurationSeconds === "number" && totalDurationSeconds > 0
+              ? Math.min(processedSeconds, totalDurationSeconds)
+              : null,
+          totalDurationSeconds,
+        });
+      }
+    };
+
+    await Promise.all(Array.from({ length: workerCount }, () => runWorker()));
+
+    if (firstError) {
+      return { text: null, provider: usedProvider, error: firstError, notes };
     }
 
-    return { text: parts.join("\n\n"), provider: usedProvider, error: null, notes };
+    const text = parts.filter((part): part is string => part !== null).join("\n\n");
+    return { text, provider: usedProvider, error: null, notes };
   } finally {
     await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
   }

@@ -174,6 +174,39 @@ export async function createMediaCache({
   const indexPath = join(cacheDir, INDEX_FILENAME);
   await ensureDir(cacheDir);
 
+  let cachedIndex: MediaCacheIndex | null = null;
+  let cachedMtimeMs: number | null = null;
+
+  const loadIndex = async (): Promise<MediaCacheIndex> => {
+    let mtimeMs: number | null = null;
+    try {
+      const info = await fs.stat(indexPath);
+      mtimeMs = info.mtimeMs;
+    } catch {
+      mtimeMs = null;
+    }
+    if (mtimeMs === null) {
+      if (!cachedIndex) cachedIndex = { version: INDEX_VERSION, entries: {} };
+      cachedMtimeMs = null;
+      return cachedIndex;
+    }
+    if (cachedIndex && cachedMtimeMs === mtimeMs) return cachedIndex;
+    cachedIndex = await readIndex(indexPath);
+    cachedMtimeMs = mtimeMs;
+    return cachedIndex;
+  };
+
+  const persistIndex = async (index: MediaCacheIndex) => {
+    await writeIndex(indexPath, index);
+    cachedIndex = index;
+    try {
+      const info = await fs.stat(indexPath);
+      cachedMtimeMs = info.mtimeMs;
+    } catch {
+      cachedMtimeMs = null;
+    }
+  };
+
   const pruneExpired = async (index: MediaCacheIndex, now: number) => {
     const entries = Object.entries(index.entries);
     for (const [key, entry] of entries) {
@@ -220,7 +253,7 @@ export async function createMediaCache({
   const get = async ({ url }: { url: string }): Promise<MediaCacheEntry | null> => {
     if (!shouldCacheUrl(url)) return null;
     const now = Date.now();
-    const index = await readIndex(indexPath);
+    const index = await loadIndex();
     await pruneExpired(index, now);
     const key = hashKey(url);
     const entry = index.entries[key];
@@ -232,14 +265,14 @@ export async function createMediaCache({
       stat = await fs.stat(filePath);
     } catch {
       await removeEntry(cacheDir, index, key, entry);
-      await writeIndex(indexPath, index);
+      await persistIndex(index);
       return null;
     }
 
     if (verify === "size" && typeof entry.sizeBytes === "number") {
       if (stat.size !== entry.sizeBytes) {
         await removeEntry(cacheDir, index, key, entry);
-        await writeIndex(indexPath, index);
+        await persistIndex(index);
         return null;
       }
     }
@@ -247,7 +280,7 @@ export async function createMediaCache({
       const hash = await hashFile(filePath);
       if (entry.sha256 && entry.sha256 !== hash) {
         await removeEntry(cacheDir, index, key, entry);
-        await writeIndex(indexPath, index);
+        await persistIndex(index);
         return null;
       }
       entry.sha256 = hash;
@@ -258,7 +291,7 @@ export async function createMediaCache({
     }
     entry.lastAccessAtMs = now;
     index.entries[key] = entry;
-    await writeIndex(indexPath, index);
+    await persistIndex(index);
     return normalizeEntry(cacheDir, entry);
   };
 
@@ -275,7 +308,7 @@ export async function createMediaCache({
   }): Promise<MediaCacheEntry | null> => {
     if (!shouldCacheUrl(url)) return null;
     const now = Date.now();
-    const index = await readIndex(indexPath);
+    const index = await loadIndex();
     await pruneExpired(index, now);
     const key = hashKey(url);
     const ext = resolveExtension(filename, mediaType);
@@ -304,7 +337,7 @@ export async function createMediaCache({
     index.entries[key] = entry;
     await enforceMaxBytes(index);
     const finalEntry = index.entries[key];
-    await writeIndex(indexPath, index);
+    await persistIndex(index);
     return finalEntry ? normalizeEntry(cacheDir, finalEntry) : null;
   };
 
