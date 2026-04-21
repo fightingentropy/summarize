@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.13.0 - 2026-04-21
+
+### Breaking
+
+- CLI: remove the hidden deprecated aliases `--firecrawl`, `--markdown`, and `--extract-only`. Use `--website-scrape`, `--markdown-mode`, and `--extract` respectively.
+
+### Changes
+
+- Models: bump default auto-model candidates to the current generation — `openai/gpt-5.4-mini` (from `gpt-5-mini`) and `anthropic/claude-sonnet-4-6` (from `claude-sonnet-4-5`) across auto-rules, markdown fallback, and help examples. Drop the stale `google/gemini-2.5-flash-lite-preview-09-2025` video fallback; `gemini-3-flash` already covers that tier.
+
+### Performance
+
+- Transcription: run whisper chunk transcription with a bounded worker pool (default 4 concurrent) instead of strictly serial awaits, pipelining chunk reads with in-flight requests and speeding up long-media transcription.
+- Media cache: cache the on-disk index in memory and only re-read on mtime change, eliminating redundant `readFile`/`JSON.parse` on every `get`/`put` within a run.
+
 ## 0.12.1 - 2026-03-16
 
 ### Fixes
