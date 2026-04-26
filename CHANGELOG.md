@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- CLI extraction: support `--extract` for local PDF files. Routes through the existing markitdown preprocessing path (no LLM round-trip), with a 500 MB ceiling.
+
 ## 0.14.0 - 2026-04-26
 
 ### Features

@@ -15,7 +15,12 @@ import {
   handleRefreshFreeRequest,
 } from "./cli-preflight.js";
 import { parseCliProviderArg } from "./env.js";
-import { handleFileInput, isTranscribableExtension, withUrlAsset } from "./flows/asset/input.js";
+import {
+  handleFileInput,
+  isPdfExtension,
+  isTranscribableExtension,
+  withUrlAsset,
+} from "./flows/asset/input.js";
 import { summarizeMediaFile as summarizeMediaFileImpl } from "./flows/asset/media.js";
 import { runUrlFlow } from "./flows/url/flow.js";
 import { attachRichHelp, buildProgram } from "./help.js";
@@ -384,10 +389,11 @@ export async function runCli(
     if (
       extractMode &&
       inputTarget.kind === "file" &&
-      !isTranscribableExtension(inputTarget.filePath)
+      !isTranscribableExtension(inputTarget.filePath) &&
+      !isPdfExtension(inputTarget.filePath)
     ) {
       throw new Error(
-        "--extract for local files is only supported for media files (MP3, MP4, WAV, etc.)",
+        "--extract for local files is only supported for media files (MP3, MP4, WAV, etc.) and PDF files",
       );
     }
     if (extractMode && inputTarget.kind === "stdin") {
