@@ -45,8 +45,13 @@ export async function fetchSpotifyTranscript(
     const episodeTitle = embedData.episodeTitle;
     const embedAudioUrl = embedData.audioUrl;
     const embedDurationSeconds = embedData.durationSeconds;
+    const embedAudioLooksEncrypted = looksLikeSpotifyEncryptedAudioFormat(embedData.drmFormat);
 
-    if (embedAudioUrl) {
+    if (embedAudioUrl && embedAudioLooksEncrypted) {
+      flow.notes.push(
+        `Spotify embed audio format ${embedData.drmFormat ?? "unknown"} looks encrypted; falling back to iTunes RSS`,
+      );
+    } else if (embedAudioUrl) {
       const missing = flow.ensureTranscriptionProvider();
       if (missing) return missing;
       flow.pushOnce("whisper");
@@ -253,4 +258,8 @@ export async function fetchSpotifyTranscript(
       },
     };
   }
+}
+
+function looksLikeSpotifyEncryptedAudioFormat(format: string | null): boolean {
+  return /(?:^|_)C(?:BCS|ENC)(?:_|$)/i.test(format ?? "");
 }

@@ -53,7 +53,7 @@ describe("podcast provider - Spotify embed audio", () => {
             state: {
               data: {
                 entity: { subtitle: "My Show", title: "My Episode", duration: 90_000 },
-                defaultAudioFileObject: { url: [audioUrl], format: "MP4_128_CBCS" },
+                defaultAudioFileObject: { url: [audioUrl], format: "MP4_128" },
               },
             },
           },
