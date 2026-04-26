@@ -457,7 +457,7 @@ describe("auto model selection", () => {
     });
 
     expect(attempts[0]?.userModelId).toBe("cli/codex");
-    expect(attempts[1]?.userModelId).toBe("cli/gemini/gemini-3-flash");
+    expect(attempts[1]?.userModelId).toBe("cli/gemini/flash");
     expect(attempts[2]?.userModelId).toBe("cli/claude/sonnet");
   });
 
@@ -519,7 +519,7 @@ describe("auto model selection", () => {
       lastSuccessfulCliProvider: "gemini",
     });
 
-    expect(attempts[0]?.userModelId).toBe("cli/gemini/gemini-3-flash");
+    expect(attempts[0]?.userModelId).toBe("cli/gemini/flash");
     expect(attempts[1]?.userModelId).toBe("cli/claude/sonnet");
   });
 });

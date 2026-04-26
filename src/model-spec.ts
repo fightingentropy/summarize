@@ -9,8 +9,8 @@ import {
 const DEFAULT_CLI_MODELS: Record<CliProvider, string | null> = {
   claude: "sonnet",
   codex: null,
-  gemini: "gemini-3-flash",
-  agent: "gpt-5.2",
+  gemini: "flash",
+  agent: "auto",
 };
 
 export type FixedModelSpec =

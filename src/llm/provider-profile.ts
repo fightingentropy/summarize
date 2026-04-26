@@ -67,8 +67,8 @@ const GATEWAY_PROVIDER_PROFILES: Record<GatewayProvider, GatewayProviderProfile>
 export const DEFAULT_CLI_MODELS: Record<CliProvider, string | null> = {
   claude: "sonnet",
   codex: null,
-  gemini: "gemini-3-flash",
-  agent: "gpt-5.2",
+  gemini: "flash",
+  agent: "auto",
 };
 
 export const DEFAULT_AUTO_CLI_ORDER: CliProvider[] = ["codex", "gemini", "claude", "agent"];

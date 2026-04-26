@@ -16,7 +16,7 @@ import {
 describe("llm provider capabilities", () => {
   it("exposes stable CLI defaults and parsing", () => {
     expect(DEFAULT_AUTO_CLI_ORDER).toEqual(["codex", "gemini", "claude", "agent"]);
-    expect(DEFAULT_CLI_MODELS.gemini).toBe("gemini-3-flash");
+    expect(DEFAULT_CLI_MODELS.gemini).toBe("flash");
     expect(parseCliProviderName(" GeMiNi ")).toBe("gemini");
     expect(requiredEnvForCliProvider("agent")).toBe("CLI_AGENT");
   });
