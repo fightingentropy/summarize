@@ -297,7 +297,7 @@ export async function runCli(
   const cacheState: CacheState = await createCacheStateFromConfig({
     envForRun,
     config,
-    noCacheFlag: false,
+    noCacheFlag,
     transcriptNamespace,
   });
   const mediaCache = await createMediaCacheFromConfig({

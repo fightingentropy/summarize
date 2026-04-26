@@ -188,6 +188,7 @@ export const resolveTranscriptForLink = async (
         transcription: deps.transcription ?? null,
         falApiKey: deps.falApiKey,
         groqApiKey: deps.groqApiKey,
+        assemblyaiApiKey: deps.assemblyaiApiKey,
         geminiApiKey: deps.geminiApiKey,
         openaiApiKey: deps.openaiApiKey,
       });
@@ -220,6 +221,7 @@ export const resolveTranscriptForLink = async (
             transcription,
             falApiKey: transcription.falApiKey,
             groqApiKey: transcription.groqApiKey,
+            assemblyaiApiKey: transcription.assemblyaiApiKey,
             geminiApiKey: transcription.geminiApiKey,
             openaiApiKey: transcription.openaiApiKey,
             mediaCache: deps.mediaCache ?? null,

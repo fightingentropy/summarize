@@ -195,7 +195,7 @@ See: https://github.com/openai/whisper for setup details`);
       falApiKey: falKey,
       groqApiKey: groqKey,
       assemblyaiApiKey: assemblyaiKey ?? ctx.apiStatus.assemblyaiApiKey,
-      openaiApiKey: openaiKey,
+      openaiApiKey: openaiKey ?? ctx.apiStatus.openaiTranscriptionKey,
     },
     scrapeWebsite: firecrawlScraper,
     convertHtmlToMarkdown: null, // Not needed for media
