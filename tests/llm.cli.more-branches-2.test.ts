@@ -150,6 +150,60 @@ describe("llm/cli more branches", () => {
     expect(resultStdout.text).toBe("STDOUT");
   });
 
+  it("codex: gpt-fast alias resolves to gpt-5.5 with service_tier=fast", async () => {
+    let capturedArgs: string[] | null = null;
+    const result = await runCliModel({
+      provider: "codex",
+      prompt: "hi",
+      model: "gpt-fast",
+      allowTools: false,
+      timeoutMs: 1000,
+      env: {},
+      config: null,
+      execFileImpl: (_cmd, args, _opts, cb) => {
+        capturedArgs = args.slice();
+        const outputIndex = args.indexOf("--output-last-message");
+        const outputPath = outputIndex >= 0 ? args[outputIndex + 1] : null;
+        if (!outputPath) throw new Error("missing output path");
+        writeFileSync(outputPath, "ok", "utf8");
+        cb(null, "", "");
+        return { stdin: { write() {}, end() {} } } as unknown as ChildProcess;
+      },
+    });
+    expect(result.text).toBe("ok");
+    expect(capturedArgs).not.toBeNull();
+    const args = capturedArgs as unknown as string[];
+    const modelIndex = args.indexOf("-m");
+    expect(modelIndex).toBeGreaterThanOrEqual(0);
+    expect(args[modelIndex + 1]).toBe("gpt-5.5");
+    expect(args).toContain('service_tier="fast"');
+  });
+
+  it("codex: existing service_tier override is preserved", async () => {
+    let capturedArgs: string[] | null = null;
+    await runCliModel({
+      provider: "codex",
+      prompt: "hi",
+      model: "gpt-5.5-fast",
+      allowTools: false,
+      timeoutMs: 1000,
+      env: {},
+      config: { codex: { extraArgs: ["-c", 'service_tier="priority"'] } },
+      execFileImpl: (_cmd, args, _opts, cb) => {
+        capturedArgs = args.slice();
+        const outputIndex = args.indexOf("--output-last-message");
+        const outputPath = outputIndex >= 0 ? args[outputIndex + 1] : null;
+        if (!outputPath) throw new Error("missing output path");
+        writeFileSync(outputPath, "ok", "utf8");
+        cb(null, "", "");
+        return { stdin: { write() {}, end() {} } } as unknown as ChildProcess;
+      },
+    });
+    const args = capturedArgs as unknown as string[];
+    expect(args).toContain('service_tier="priority"');
+    expect(args).not.toContain('service_tier="fast"');
+  });
+
   it("returns trimmed stdout when JSON payload has no usable result field", async () => {
     const result = await runCliModel({
       provider: "claude",

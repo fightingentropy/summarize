@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseRequestedModelId } from "../src/model-spec.js";
+import { parseRequestedModelId, resolveOpenAiFastModelId } from "../src/model-spec.js";
 
 describe("model spec parsing", () => {
   it("rejects empty model ids", () => {
@@ -95,5 +95,43 @@ describe("model spec parsing", () => {
     expect(nvidia.provider).toBe("nvidia");
     expect(nvidia.requiredEnv).toBe("NVIDIA_API_KEY");
     expect(nvidia.llmModelId).toBe("nvidia/z-ai/glm5");
+  });
+
+  describe("OpenAI fast-tier model id", () => {
+    it("recognises bare <model>-fast aliases", () => {
+      const fast = resolveOpenAiFastModelId("gpt-5.5-fast");
+      expect(fast).toEqual({ modelId: "gpt-5.5", options: { serviceTier: "fast" } });
+    });
+
+    it("matches case-insensitively and ignores whitespace", () => {
+      expect(resolveOpenAiFastModelId("  GPT-5.4-FAST  ")).toEqual({
+        modelId: "GPT-5.4",
+        options: { serviceTier: "fast" },
+      });
+    });
+
+    it("returns null for non-fast model ids", () => {
+      expect(resolveOpenAiFastModelId("gpt-5.5")).toBeNull();
+      expect(resolveOpenAiFastModelId("gpt-5.6-fast")).toBeNull();
+      expect(resolveOpenAiFastModelId("openai/gpt-5.5-fast")).toBeNull();
+    });
+
+    it("resolves bare top-level fast aliases via parseRequestedModelId", () => {
+      const parsed = parseRequestedModelId("gpt-5.5-fast");
+      expect(parsed.kind).toBe("fixed");
+      expect(parsed.transport).toBe("native");
+      expect(parsed.provider).toBe("openai");
+      expect(parsed.userModelId).toBe("gpt-5.5-fast");
+      expect(parsed.llmModelId).toBe("openai/gpt-5.5");
+      expect(parsed.requestOptions).toEqual({ serviceTier: "fast" });
+    });
+
+    it("resolves provider-prefixed fast aliases via parseRequestedModelId", () => {
+      const parsed = parseRequestedModelId("openai/gpt-5.4-fast");
+      expect(parsed.kind).toBe("fixed");
+      expect(parsed.provider).toBe("openai");
+      expect(parsed.llmModelId).toBe("openai/gpt-5.4");
+      expect(parsed.requestOptions).toEqual({ serviceTier: "fast" });
+    });
   });
 });
