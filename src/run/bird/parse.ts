@@ -8,6 +8,24 @@ const asArray = (value: unknown): unknown[] | null => (Array.isArray(value) ? va
 
 const asString = (value: unknown): string | null => (typeof value === "string" ? value : null);
 
+const asNumber = (value: unknown): number | null => (typeof value === "number" ? value : null);
+
+function resolveXurlTopLevelError(root: Record<string, unknown> | null): string | null {
+  if (!root) return null;
+  const status = asNumber(root.status);
+  const title = asString(root.title)?.trim();
+  const detail = asString(root.detail)?.trim();
+  if (!status && !title && !detail) return null;
+
+  const label = detail || title || "request failed";
+  const statusText = status ? ` (${status})` : "";
+  const base = `xurl API error: ${label}${statusText}`;
+  if (status === 401 || /unauthorized/i.test(label)) {
+    return `${base}. xurl is installed but is not authorized for this request; run "xurl auth status" and configure OAuth credentials, or install "bird" for fallback.`;
+  }
+  return base;
+}
+
 function resolveXurlArticleText(article: Record<string, unknown> | null): string | null {
   if (!article) return null;
 
@@ -43,6 +61,9 @@ function resolveXurlTweetText(data: Record<string, unknown>): string | null {
 
 export function parseXurlTweetPayload(raw: unknown): BirdTweetPayload {
   const root = asRecord(raw);
+  const topLevelError = resolveXurlTopLevelError(root);
+  if (topLevelError) throw new Error(topLevelError);
+
   const errors = asArray(root?.errors);
   if (errors && errors.length > 0) {
     const first = asRecord(errors[0]);
