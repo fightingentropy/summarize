@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- Models: add OpenAI fast-service controls — `--fast` / `--service-tier` / `--thinking` flags, `gpt-fast` / `fast` / `codex-fast` presets, and `serviceTier` / `reasoningEffort` / `textVerbosity` keys under `openai` and `model.id` config. `gpt-fast` and `fast` route to `openai/gpt-5.5` with `service_tier=priority`; `codex-fast` runs Codex CLI with `service_tier="fast"`. Also recognises `<openai-model>-fast` (e.g. `openai/gpt-5.4-fast`) as a fast-tier alias.
+
+### Fixes
+
+- Cache: honour `--no-cache` for URL extraction (previously the flag was hardcoded to `false` in the runner plan, so cached URL/transcript reads still ran).
+- Transcription: forward the resolved OpenAI key into the asset/media flow and surface `yt-dlp` transcription failures via flow notes instead of swallowing them.
+- CLI auto: include config-provided env values when selecting `auto` candidates so API keys in `~/.summarize/config.json` are honoured for URL summaries.
+- CLI providers: use stable aliases for Gemini (`flash`) and Cursor Agent (`auto`) so installed CLI versions resolve supported models reliably.
+- CLI progress: show only the active transcription provider/model in status text instead of the full remote fallback chain.
+- X extraction: surface unauthorized `xurl` responses with actionable auth/fallback guidance when Nitter is unavailable.
+- Spotify podcasts: skip encrypted Spotify embed audio (CBCS/CENC formats) and fall back to publisher RSS enclosures instead of trying to transcribe DRM-protected streams.
+
 ## 0.13.0 - 2026-04-21
 
 ### Breaking

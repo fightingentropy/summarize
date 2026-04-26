@@ -9,7 +9,23 @@ export const SUPPORT_URL = "https://github.com/fightingentropy/summarize";
 export const TWITTER_HOSTS = new Set(["x.com", "twitter.com", "mobile.twitter.com"]);
 export const MAX_TEXT_BYTES_DEFAULT = 10 * 1024 * 1024;
 
+export const GPT_FAST_MODEL_ID = "openai/gpt-5.5";
+export const CODEX_GPT_FAST_MODEL_ID = "cli/codex/gpt-fast";
+
 export const BUILTIN_MODELS: Record<string, ModelConfig> = {
+  "gpt-fast": {
+    id: GPT_FAST_MODEL_ID,
+    serviceTier: "fast",
+    reasoningEffort: "medium",
+  },
+  fast: {
+    id: GPT_FAST_MODEL_ID,
+    serviceTier: "fast",
+    reasoningEffort: "medium",
+  },
+  "codex-fast": {
+    id: CODEX_GPT_FAST_MODEL_ID,
+  },
   free: {
     mode: "auto",
     rules: [

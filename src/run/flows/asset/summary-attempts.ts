@@ -85,6 +85,9 @@ export async function buildAssetModelAttempts({
       openrouterProviders: ctx.fixedModelSpec.openrouterProviders,
       forceOpenRouter: ctx.fixedModelSpec.forceOpenRouter,
       requiredEnv: ctx.fixedModelSpec.requiredEnv,
+      ...(ctx.fixedModelSpec.requestOptions
+        ? { requestOptions: ctx.fixedModelSpec.requestOptions }
+        : {}),
       ...openaiOverrides,
     },
   ];

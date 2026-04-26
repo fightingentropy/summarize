@@ -4,6 +4,7 @@ import { createUnsupportedFunctionalityError } from "./errors.js";
 import { resolveEffectiveTemperature, streamUsageWithTimeout } from "./generate-text-shared.js";
 import type { LlmApiKeys } from "./generate-text.js";
 import { parseGatewayStyleModelId } from "./model-id.js";
+import type { ModelRequestOptions } from "./model-options.js";
 import {
   resolveOpenAiCompatibleClientConfigForProvider,
   supportsStreaming,
@@ -15,6 +16,10 @@ import {
   resolveOpenAiModel,
   resolveXaiModel,
 } from "./providers/models.js";
+import {
+  buildOpenAiChatRequestOptions,
+  buildOpenAiResponsesRequestOptions,
+} from "./providers/openai.js";
 import type { OpenAiClientConfig } from "./providers/types.js";
 import type { LlmTokenUsage } from "./types.js";
 
@@ -32,6 +37,7 @@ export type StreamTextWithContextArgs = {
   googleBaseUrlOverride?: string | null;
   xaiBaseUrlOverride?: string | null;
   forceChatCompletions?: boolean;
+  requestOptions?: ModelRequestOptions;
 };
 
 export type StreamTextResult = {
@@ -153,6 +159,7 @@ export async function streamTextWithContext({
   googleBaseUrlOverride,
   xaiBaseUrlOverride,
   forceChatCompletions,
+  requestOptions,
 }: StreamTextWithContextArgs): Promise<StreamTextResult> {
   const parsed = parseGatewayStyleModelId(modelId);
   if (!supportsStreaming(parsed.provider)) {
@@ -286,13 +293,27 @@ export async function streamTextWithContext({
         forceOpenRouter,
         openaiBaseUrlOverride,
         forceChatCompletions,
+        requestOptions,
       });
       const model = resolveOpenAiModel({ modelId: parsed.model, context, openaiConfig });
+      const requestExtras = openaiConfig.useChatCompletions
+        ? buildOpenAiChatRequestOptions(openaiConfig.requestOptions)
+        : buildOpenAiResponsesRequestOptions(openaiConfig.requestOptions);
+      const onPayload =
+        Object.keys(requestExtras).length > 0
+          ? (payload: unknown) => {
+              if (payload && typeof payload === "object") {
+                return { ...(payload as Record<string, unknown>), ...requestExtras };
+              }
+              return undefined;
+            }
+          : undefined;
       const stream = streamSimple(model, context, {
         ...(typeof effectiveTemperature === "number" ? { temperature: effectiveTemperature } : {}),
         ...(typeof maxOutputTokens === "number" ? { maxTokens: maxOutputTokens } : {}),
         apiKey: openaiConfig.apiKey,
         signal: controller.signal,
+        ...(onPayload ? { onPayload } : {}),
       });
       return {
         textStream: createTimedTextStream({

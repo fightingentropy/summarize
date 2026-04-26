@@ -1,4 +1,5 @@
 import type { CliProvider } from "../config.js";
+import type { ModelRequestOptions } from "../llm/model-options.js";
 
 export type ModelAttemptRequiredEnv =
   | "XAI_API_KEY"
@@ -23,6 +24,7 @@ export type ModelAttempt = {
   openaiBaseUrlOverride?: string | null;
   openaiApiKeyOverride?: string | null;
   forceChatCompletions?: boolean;
+  requestOptions?: ModelRequestOptions;
   cliProvider?: CliProvider;
   cliModel?: string | null;
 };
@@ -38,5 +40,6 @@ export type MarkdownModel = {
   openaiApiKeyOverride?: string | null;
   openaiBaseUrlOverride?: string | null;
   forceChatCompletions?: boolean;
+  requestOptions?: ModelRequestOptions;
   requiredEnv?: ModelAttemptRequiredEnv;
 };

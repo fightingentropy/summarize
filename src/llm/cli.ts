@@ -20,6 +20,33 @@ const DEFAULT_BINARIES: Record<CliProvider, string> = {
   agent: "agent",
 };
 
+const CODEX_GPT_FAST_MODEL = "gpt-5.5";
+const CODEX_GPT_FAST_ALIASES = new Set(["gpt-fast", "gpt-5.5-fast"]);
+
+function hasCodexConfigOverride(args: string[], key: string): boolean {
+  for (let i = 0; i < args.length; i += 1) {
+    if (args[i] !== "-c" && args[i] !== "--config") continue;
+    const next = args[i + 1] ?? "";
+    if (next.trim().startsWith(`${key}=`)) return true;
+  }
+  return false;
+}
+
+function resolveCodexModelAndArgs(
+  requestedModel: string | null,
+  baseArgs: string[],
+): { model: string | null; extraArgs: string[] } {
+  const normalized = requestedModel?.trim().toLowerCase() ?? "";
+  if (!CODEX_GPT_FAST_ALIASES.has(normalized)) {
+    return { model: requestedModel, extraArgs: baseArgs };
+  }
+  const extraArgs = [...baseArgs];
+  if (!hasCodexConfigOverride(extraArgs, "service_tier")) {
+    extraArgs.push("-c", 'service_tier="fast"');
+  }
+  return { model: CODEX_GPT_FAST_MODEL, extraArgs };
+}
+
 const PROVIDER_PATH_ENV: Record<CliProvider, string> = {
   claude: "CLAUDE_PATH",
   codex: "CODEX_PATH",
@@ -155,11 +182,14 @@ export async function runCliModel({
     args.push(...extraArgs);
   }
   if (provider === "codex") {
+    const { model: codexModel, extraArgs: codexArgs } = resolveCodexModelAndArgs(model, args);
+    args.length = 0;
+    args.push(...codexArgs);
     const outputDir = await fs.mkdtemp(path.join(tmpdir(), "summarize-codex-"));
     const outputPath = path.join(outputDir, "last-message.txt");
     args.push("exec", "--output-last-message", outputPath, "--skip-git-repo-check", "--json");
-    if (model && model.trim().length > 0) {
-      args.push("-m", model.trim());
+    if (codexModel && codexModel.trim().length > 0) {
+      args.push("-m", codexModel.trim());
     }
     const hasVerbosityOverride = args.some((arg) => arg.includes("text.verbosity"));
     if (!hasVerbosityOverride) {

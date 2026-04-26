@@ -3,6 +3,7 @@ import { completeSimple } from "@mariozechner/pi-ai";
 import { isOpenRouterBaseUrl, normalizeBaseUrl } from "../../openai/base-url.js";
 import type { Attachment } from "../attachments.js";
 import { createUnsupportedFunctionalityError } from "../errors.js";
+import { type ModelRequestOptions, toOpenAiServiceTierParam } from "../model-options.js";
 import type { LlmTokenUsage } from "../types.js";
 import { normalizeOpenAiUsage, normalizeTokenUsage } from "../usage.js";
 import { resolveOpenAiModel } from "./models.js";
@@ -17,6 +18,7 @@ export type OpenAiClientConfigInput = {
   forceOpenRouter?: boolean;
   openaiBaseUrlOverride?: string | null;
   forceChatCompletions?: boolean;
+  requestOptions?: ModelRequestOptions;
 };
 
 export function resolveOpenAiClientConfig({
@@ -24,6 +26,7 @@ export function resolveOpenAiClientConfig({
   forceOpenRouter,
   openaiBaseUrlOverride,
   forceChatCompletions,
+  requestOptions,
 }: OpenAiClientConfigInput): OpenAiClientConfig {
   const baseUrlRaw =
     openaiBaseUrlOverride ??
@@ -68,6 +71,33 @@ export function resolveOpenAiClientConfig({
     baseURL: baseURL ?? undefined,
     useChatCompletions,
     isOpenRouter,
+    ...(requestOptions ? { requestOptions } : {}),
+  };
+}
+
+export function buildOpenAiResponsesRequestOptions(
+  requestOptions: ModelRequestOptions | undefined,
+): Record<string, unknown> {
+  if (!requestOptions) return {};
+  const serviceTier = toOpenAiServiceTierParam(requestOptions.serviceTier);
+  return {
+    ...(serviceTier ? { service_tier: serviceTier } : {}),
+    ...(requestOptions.reasoningEffort
+      ? { reasoning: { effort: requestOptions.reasoningEffort } }
+      : {}),
+    ...(requestOptions.textVerbosity ? { text: { verbosity: requestOptions.textVerbosity } } : {}),
+  };
+}
+
+export function buildOpenAiChatRequestOptions(
+  requestOptions: ModelRequestOptions | undefined,
+): Record<string, unknown> {
+  if (!requestOptions) return {};
+  const serviceTier = toOpenAiServiceTierParam(requestOptions.serviceTier);
+  return {
+    ...(serviceTier ? { service_tier: serviceTier } : {}),
+    ...(requestOptions.reasoningEffort ? { reasoning_effort: requestOptions.reasoningEffort } : {}),
+    ...(requestOptions.textVerbosity ? { verbosity: requestOptions.textVerbosity } : {}),
   };
 }
 
@@ -116,11 +146,24 @@ export async function completeOpenAiText({
   signal: AbortSignal;
 }): Promise<{ text: string; usage: LlmTokenUsage | null }> {
   const model = resolveOpenAiModel({ modelId, context, openaiConfig });
+  const requestExtras = openaiConfig.useChatCompletions
+    ? buildOpenAiChatRequestOptions(openaiConfig.requestOptions)
+    : buildOpenAiResponsesRequestOptions(openaiConfig.requestOptions);
+  const onPayload =
+    Object.keys(requestExtras).length > 0
+      ? (payload: unknown) => {
+          if (payload && typeof payload === "object") {
+            return { ...(payload as Record<string, unknown>), ...requestExtras };
+          }
+          return undefined;
+        }
+      : undefined;
   const result = await completeSimple(model, context, {
     ...(typeof temperature === "number" ? { temperature } : {}),
     ...(typeof maxOutputTokens === "number" ? { maxTokens: maxOutputTokens } : {}),
     apiKey: openaiConfig.apiKey,
     signal,
+    ...(onPayload ? { onPayload } : {}),
   });
   const text = result.content
     .filter((c) => c.type === "text")
@@ -185,6 +228,7 @@ export async function completeOpenAiDocument({
         ],
       },
     ],
+    ...buildOpenAiResponsesRequestOptions(openaiConfig.requestOptions),
     ...(typeof maxOutputTokens === "number" ? { max_output_tokens: maxOutputTokens } : {}),
     ...(typeof temperature === "number" ? { temperature } : {}),
   };

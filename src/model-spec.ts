@@ -1,5 +1,6 @@
 import type { CliProvider } from "./config.js";
 import { normalizeGatewayStyleModelId, parseGatewayStyleModelId } from "./llm/model-id.js";
+import type { ModelRequestOptions } from "./llm/model-options.js";
 import {
   type RequiredModelEnv,
   requiredEnvForCliProvider,
@@ -30,6 +31,7 @@ export type FixedModelSpec =
         | "NVIDIA_API_KEY";
       openaiBaseUrlOverride?: string | null;
       forceChatCompletions?: boolean;
+      requestOptions?: ModelRequestOptions;
     }
   | {
       transport: "openrouter";
@@ -39,6 +41,7 @@ export type FixedModelSpec =
       openrouterProviders: string[] | null;
       forceOpenRouter: true;
       requiredEnv: "OPENROUTER_API_KEY";
+      requestOptions?: ModelRequestOptions;
     }
   | {
       transport: "cli";
@@ -52,6 +55,15 @@ export type FixedModelSpec =
     };
 
 export type RequestedModel = { kind: "auto" } | ({ kind: "fixed" } & FixedModelSpec);
+
+export function resolveOpenAiFastModelId(
+  modelId: string,
+): { modelId: string; options: ModelRequestOptions } | null {
+  const normalized = modelId.trim();
+  const match = /^(gpt-5\.[45](?:[-.][a-z0-9]+)*)-fast$/i.exec(normalized);
+  if (!match) return null;
+  return { modelId: match[1] ?? normalized, options: { serviceTier: "fast" } };
+}
 
 export function parseRequestedModelId(raw: string): RequestedModel {
   const trimmed = raw.trim();
@@ -157,6 +169,20 @@ export function parseRequestedModelId(raw: string): RequestedModel {
   }
 
   if (!trimmed.includes("/")) {
+    const fastOpenAi = resolveOpenAiFastModelId(trimmed);
+    if (fastOpenAi) {
+      return {
+        kind: "fixed",
+        transport: "native",
+        userModelId: trimmed,
+        llmModelId: `openai/${fastOpenAi.modelId}`,
+        provider: "openai",
+        openrouterProviders: null,
+        forceOpenRouter: false,
+        requiredEnv: "OPENAI_API_KEY",
+        requestOptions: fastOpenAi.options,
+      };
+    }
     throw new Error(
       `Unknown model "${trimmed}". Expected "auto" or a provider-prefixed id like openai/..., google/..., anthropic/..., xai/..., zai/..., openrouter/... or cli/....`,
     );
@@ -164,6 +190,8 @@ export function parseRequestedModelId(raw: string): RequestedModel {
 
   const userModelId = normalizeGatewayStyleModelId(trimmed);
   const parsed = parseGatewayStyleModelId(userModelId);
+  const fastOpenAi = parsed.provider === "openai" ? resolveOpenAiFastModelId(parsed.model) : null;
+  const llmModelId = fastOpenAi ? `openai/${fastOpenAi.modelId}` : userModelId;
   const requiredEnv = resolveRequiredEnvForModelId(userModelId) as Extract<
     RequiredModelEnv,
     | "XAI_API_KEY"
@@ -177,10 +205,11 @@ export function parseRequestedModelId(raw: string): RequestedModel {
     kind: "fixed",
     transport: "native",
     userModelId,
-    llmModelId: userModelId,
+    llmModelId,
     provider: parsed.provider,
     openrouterProviders: null,
     forceOpenRouter: false,
     requiredEnv,
+    ...(fastOpenAi ? { requestOptions: fastOpenAi.options } : {}),
   };
 }

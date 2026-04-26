@@ -1,3 +1,5 @@
+import { parseOpenAiReasoningEffort, parseOpenAiTextVerbosity } from "../llm/model-options.js";
+import type { ModelRequestOptions } from "../llm/model-options.js";
 import { isRecord } from "./parse-helpers.js";
 import type { AutoRule, AutoRuleKind, ModelConfig } from "./types.js";
 
@@ -31,6 +33,45 @@ function parseWhenKinds(raw: unknown, path: string): AutoRuleKind[] {
   }
 
   return kinds;
+}
+
+function parseModelRequestOptions(
+  raw: Record<string, unknown>,
+  path: string,
+  label: string,
+): ModelRequestOptions {
+  const serviceTier =
+    typeof raw.serviceTier === "string" && raw.serviceTier.trim().length > 0
+      ? raw.serviceTier.trim()
+      : undefined;
+  if (
+    typeof raw.reasoningEffort !== "undefined" &&
+    typeof raw.thinking !== "undefined" &&
+    String(raw.reasoningEffort).trim().toLowerCase() !== String(raw.thinking).trim().toLowerCase()
+  ) {
+    throw new Error(
+      `Invalid config file ${path}: "${label}.reasoningEffort" and "${label}.thinking" must not conflict.`,
+    );
+  }
+  const reasoningRaw =
+    typeof raw.reasoningEffort === "string"
+      ? raw.reasoningEffort
+      : typeof raw.thinking === "string"
+        ? raw.thinking
+        : undefined;
+  const reasoningEffort =
+    typeof reasoningRaw === "string"
+      ? parseOpenAiReasoningEffort(reasoningRaw, `${label}.reasoningEffort`)
+      : undefined;
+  const textVerbosity =
+    typeof raw.textVerbosity === "string"
+      ? parseOpenAiTextVerbosity(raw.textVerbosity, `${label}.textVerbosity`)
+      : undefined;
+  return {
+    ...(serviceTier ? { serviceTier } : {}),
+    ...(reasoningEffort ? { reasoningEffort } : {}),
+    ...(textVerbosity ? { textVerbosity } : {}),
+  };
 }
 
 function parseModelCandidates(raw: unknown, path: string): string[] {
@@ -144,7 +185,7 @@ export function parseModelConfig(
         `Invalid config file ${path}: "${label}.id" must be provider-prefixed (e.g. "openai/gpt-5-mini").`,
       );
     }
-    return { id } satisfies ModelConfig;
+    return { id, ...parseModelRequestOptions(raw, path, label) } satisfies ModelConfig;
   }
 
   const hasRules = typeof raw.rules !== "undefined";

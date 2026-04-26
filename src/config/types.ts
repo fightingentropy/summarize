@@ -27,6 +27,9 @@ export type CliConfig = {
   extraArgs?: string[];
 };
 
+export type OpenAiReasoningEffort = "none" | "low" | "medium" | "high" | "xhigh";
+export type OpenAiTextVerbosity = "low" | "medium" | "high";
+
 export type OpenAiConfig = {
   /**
    * Override the OpenAI-compatible API base URL (e.g. a proxy, OpenRouter, or a local gateway).
@@ -35,6 +38,10 @@ export type OpenAiConfig = {
    */
   baseUrl?: string;
   useChatCompletions?: boolean;
+  serviceTier?: string;
+  reasoningEffort?: OpenAiReasoningEffort;
+  thinking?: OpenAiReasoningEffort;
+  textVerbosity?: OpenAiTextVerbosity;
   /**
    * USD per minute for OpenAI Whisper transcription cost estimation.
    *
@@ -162,6 +169,10 @@ export type AutoRule = {
 export type ModelConfig =
   | {
       id: string;
+      serviceTier?: string;
+      reasoningEffort?: OpenAiReasoningEffort;
+      thinking?: OpenAiReasoningEffort;
+      textVerbosity?: OpenAiTextVerbosity;
     }
   | {
       mode: "auto";

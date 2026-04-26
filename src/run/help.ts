@@ -108,6 +108,21 @@ export function buildProgram() {
       undefined,
     )
     .option(
+      "--fast",
+      "Use the OpenAI fast service tier for OpenAI models (sends service_tier=priority).",
+      false,
+    )
+    .addOption(
+      new Option("--service-tier <tier>", "OpenAI service tier: default, fast, priority, flex.")
+        .choices(["default", "fast", "priority", "flex"])
+        .default(undefined),
+    )
+    .option(
+      "--thinking <effort>",
+      "OpenAI reasoning effort: none, low, medium, high, xhigh (aliases: off, min, mid).",
+      undefined,
+    )
+    .option(
       "--prompt <text>",
       "Override the summary prompt (instruction prefix; context/content still appended).",
       undefined,
@@ -240,6 +255,9 @@ ${heading("Examples")}
   ${cmd('summarize slides "https://www.youtube.com/watch?v=..." --render auto')} ${dim("# slides-only mode with inline thumbnails")}
   ${cmd("summarize transcriber setup")} ${dim("# configure local ONNX transcription (parakeet/canary)")}
   ${cmd('summarize "https://example.com" --length 20k --max-output-tokens 2k --timeout 2m --model openai/gpt-5.4-mini')}
+  ${cmd('summarize "https://example.com" --model fast')} ${dim("# OpenAI fast service tier preset")}
+  ${cmd('summarize "https://example.com" --model openai/gpt-5.5 --fast --thinking medium')}
+  ${cmd('summarize "https://example.com" --model gpt-fast')} ${dim("# Codex GPT-5.5 Fast mode")}
   ${cmd('summarize "https://example.com" --model mymodel')} ${dim("# config preset")}
   ${cmd('summarize "https://example.com" --json --verbose')}
   ${cmd("pbpaste | summarize -")} ${dim("# summarize clipboard content")}

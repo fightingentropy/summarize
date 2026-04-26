@@ -1,5 +1,6 @@
 import type { CliProvider } from "../config.js";
 import { normalizeGatewayStyleModelId, parseGatewayStyleModelId } from "./model-id.js";
+import type { ModelRequestOptions } from "./model-options.js";
 import { resolveOpenAiClientConfig } from "./providers/openai.js";
 import type { OpenAiClientConfig } from "./providers/types.js";
 
@@ -157,6 +158,7 @@ export function resolveOpenAiCompatibleClientConfigForProvider({
   forceOpenRouter,
   openaiBaseUrlOverride,
   forceChatCompletions,
+  requestOptions,
 }: {
   provider: "openai" | "zai" | "nvidia";
   openaiApiKey: string | null;
@@ -164,6 +166,7 @@ export function resolveOpenAiCompatibleClientConfigForProvider({
   forceOpenRouter?: boolean;
   openaiBaseUrlOverride?: string | null;
   forceChatCompletions?: boolean;
+  requestOptions?: ModelRequestOptions;
 }): OpenAiClientConfig {
   if (provider === "openai") {
     return resolveOpenAiClientConfig({
@@ -174,6 +177,7 @@ export function resolveOpenAiCompatibleClientConfigForProvider({
       forceOpenRouter,
       openaiBaseUrlOverride,
       forceChatCompletions,
+      requestOptions,
     });
   }
 
@@ -193,5 +197,6 @@ export function resolveOpenAiCompatibleClientConfigForProvider({
       (provider === "zai" ? "https://api.z.ai/api/paas/v4" : "https://integrate.api.nvidia.com/v1"),
     useChatCompletions: true,
     isOpenRouter: false,
+    ...(requestOptions ? { requestOptions } : {}),
   };
 }

@@ -2,6 +2,7 @@ import type { OutputLanguage } from "../language.js";
 import { formatOutputLanguageInstruction } from "../language.js";
 import type { LlmTokenUsage } from "./generate-text.js";
 import { generateTextWithModelId } from "./generate-text.js";
+import type { ModelRequestOptions } from "./model-options.js";
 
 const MAX_TRANSCRIPT_INPUT_CHARACTERS = 200_000;
 
@@ -63,6 +64,7 @@ export function createTranscriptToMarkdownConverter({
   openrouterApiKey,
   fetchImpl,
   forceChatCompletions,
+  requestOptions,
   retries = 0,
   onRetry,
   onUsage,
@@ -80,6 +82,7 @@ export function createTranscriptToMarkdownConverter({
   anthropicApiKey: string | null;
   openrouterApiKey: string | null;
   forceChatCompletions?: boolean;
+  requestOptions?: ModelRequestOptions;
   retries?: number;
   onRetry?: (notice: {
     attempt: number;
@@ -114,6 +117,7 @@ export function createTranscriptToMarkdownConverter({
       googleBaseUrlOverride,
       xaiBaseUrlOverride,
       forceChatCompletions,
+      requestOptions,
       prompt: { system, userText: prompt },
       timeoutMs,
       fetchImpl,

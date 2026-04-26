@@ -4,6 +4,8 @@ import type { CliProvider } from "../config.js";
 import { isCliDisabled, runCliModel } from "../llm/cli.js";
 import { streamTextWithModelId } from "../llm/generate-text.js";
 import { parseGatewayStyleModelId } from "../llm/model-id.js";
+import { mergeModelRequestOptions } from "../llm/model-options.js";
+import type { ModelRequestOptions } from "../llm/model-options.js";
 import type { Prompt } from "../llm/prompt.js";
 import { formatCompactCount } from "../tty/format.js";
 import { createRetryLogger, writeVerbose } from "./logging.js";
@@ -33,6 +35,8 @@ export type SummaryEngineDeps = {
   verbose: boolean;
   verboseColor: boolean;
   openaiUseChatCompletions: boolean;
+  openaiRequestOptions?: ModelRequestOptions;
+  openaiRequestOptionsOverride?: ModelRequestOptions;
   cliConfigForRun: Parameters<typeof runCliModel>[0]["config"];
   cliAvailability: Partial<Record<CliProvider, boolean>>;
   trackedFetch: typeof fetch;
@@ -256,9 +260,17 @@ export function createSummaryEngine(deps: SummaryEngineDeps) {
       );
     }
     const parsedModelEffective = parseGatewayStyleModelId(modelResolution.modelId);
+    const requestOptions = mergeModelRequestOptions(
+      deps.openaiRequestOptions,
+      attempt.requestOptions,
+      deps.openaiRequestOptionsOverride,
+    );
+    const hasOpenAiRequestOptions =
+      parsedModelEffective.provider === "openai" && Boolean(requestOptions);
     const streamingEnabledForCall =
       allowStreaming &&
       deps.streamingEnabled &&
+      !hasOpenAiRequestOptions &&
       !modelResolution.forceStreamOff &&
       canStream({
         provider: parsedModelEffective.provider,
@@ -304,6 +316,7 @@ export function createSummaryEngine(deps: SummaryEngineDeps) {
         xaiBaseUrlOverride: deps.providerBaseUrls.xai,
         zaiBaseUrlOverride: deps.zai.baseUrl,
         forceChatCompletions,
+        requestOptions,
         retries: deps.retries,
         onRetry: createRetryLogger({
           stderr: deps.stderr,
@@ -357,6 +370,7 @@ export function createSummaryEngine(deps: SummaryEngineDeps) {
         googleBaseUrlOverride: deps.providerBaseUrls.google,
         xaiBaseUrlOverride: deps.providerBaseUrls.xai,
         forceChatCompletions,
+        requestOptions,
         prompt,
         temperature: 0,
         maxOutputTokens: maxOutputTokensForCall ?? undefined,
@@ -386,6 +400,7 @@ export function createSummaryEngine(deps: SummaryEngineDeps) {
           xaiBaseUrlOverride: deps.providerBaseUrls.xai,
           zaiBaseUrlOverride: deps.zai.baseUrl,
           forceChatCompletions,
+          requestOptions,
           retries: deps.retries,
           onRetry: createRetryLogger({
             stderr: deps.stderr,
