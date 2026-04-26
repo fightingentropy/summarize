@@ -162,21 +162,13 @@ export function createTranscriptProgressRenderer({
   const downloadTitle = () =>
     state.mediaKind === "video" ? "Downloading video" : "Downloading audio";
 
-  const formatProvider = (hint: typeof state.whisperProviderHint) => {
+  const firstChainPart = (value: string | null): string | null => {
+    return value?.split("->", 1)[0]?.trim() || null;
+  };
+
+  const formatProvider = (hint: string) => {
     if (hint === "cpp") return "Whisper.cpp";
     if (hint === "onnx") return "ONNX (Parakeet/Canary)";
-    const labelForPart = (part: string, chained: boolean) => {
-      if (part === "groq") return "Whisper/Groq";
-      if (part === "assemblyai") return "AssemblyAI";
-      if (part === "gemini") return "Gemini";
-      if (part === "openai") return "Whisper/OpenAI";
-      if (part === "fal") return chained ? "FAL" : "Whisper/FAL";
-      return part;
-    };
-    if (hint.includes("->")) {
-      const parts = hint.split("->");
-      return parts.map((part) => labelForPart(part, parts.length > 1)).join("→");
-    }
     if (hint === "groq") return "Whisper/Groq";
     if (hint === "assemblyai") return "AssemblyAI";
     if (hint === "gemini") return "Gemini";
@@ -186,8 +178,9 @@ export function createTranscriptProgressRenderer({
   };
 
   const renderWhisperLine = () => {
-    const provider = formatProvider(state.whisperProviderHint);
-    const providerLabel = state.whisperModelId ? `${provider}, ${state.whisperModelId}` : provider;
+    const provider = formatProvider(firstChainPart(state.whisperProviderHint) ?? "");
+    const modelId = firstChainPart(state.whisperModelId);
+    const providerLabel = modelId ? `${provider}, ${modelId}` : provider;
     const svc =
       state.service === "podcast" ? "podcast" : state.service === "youtube" ? "youtube" : "media";
     const elapsedMs = typeof state.startedAtMs === "number" ? Date.now() - state.startedAtMs : 0;
