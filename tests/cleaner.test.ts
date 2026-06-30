@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyContentBudget,
   clipAtSentenceBoundary,
+  clipHeadAndTail,
   decodeHtmlEntities,
   normalizeCandidate,
   normalizeForPrompt,
@@ -60,5 +61,40 @@ describe("content cleaner utilities", () => {
     expect(empty.truncated).toBe(false);
     expect(empty.content).toBe("");
     expect(empty.wordCount).toBe(0);
+  });
+
+  it("drops the middle when applying a generous content budget", () => {
+    const input = `HEAD_START ${"x".repeat(3000)} MIDDLE_MARKER ${"y".repeat(3000)} TAIL_END`;
+    const result = applyContentBudget(input, 2000);
+    expect(result.truncated).toBe(true);
+    expect(result.totalCharacters).toBe(input.length);
+    expect(result.content.length).toBeLessThanOrEqual(2000);
+    expect(result.content).toContain("HEAD_START");
+    expect(result.content).toContain("TAIL_END");
+    expect(result.content).not.toContain("MIDDLE_MARKER");
+  });
+});
+
+describe("clipHeadAndTail", () => {
+  it("returns input unchanged when within budget", () => {
+    expect(clipHeadAndTail("short content", 100)).toBe("short content");
+  });
+
+  it("keeps the head and tail and drops the middle for oversized input", () => {
+    const input = `HEAD_START ${"x".repeat(3000)} MIDDLE_MARKER ${"y".repeat(3000)} TAIL_END`;
+    const out = clipHeadAndTail(input, 2000);
+    expect(out.length).toBeLessThanOrEqual(2000);
+    expect(out).toContain("HEAD_START");
+    expect(out).toContain("TAIL_END");
+    expect(out).toContain("truncated"); // omission marker is present
+    expect(out).not.toContain("MIDDLE_MARKER");
+  });
+
+  it("falls back to a head-only clip when the budget is too small for a tail", () => {
+    const input = "First sentence. Second sentence. Third sentence. Fourth sentence.";
+    const out = clipHeadAndTail(input, 30);
+    expect(out.length).toBeLessThanOrEqual(30);
+    expect(out).not.toContain("truncated"); // no omission marker
+    expect(input.startsWith(out)).toBe(true); // a pure head-only prefix
   });
 });

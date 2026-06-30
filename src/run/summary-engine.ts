@@ -1,6 +1,7 @@
 import { countTokens } from "gpt-tokenizer";
 import { createMarkdownStreamer, render as renderMarkdownAnsi } from "markdansi";
 import type { CliProvider } from "../config.js";
+import { clipHeadAndTail } from "../content/link-preview/content/cleaner.js";
 import { isCliDisabled, runCliModel } from "../llm/cli.js";
 import { streamTextWithModelId } from "../llm/generate-text.js";
 import { parseGatewayStyleModelId } from "../llm/model-id.js";
@@ -20,6 +21,31 @@ import {
 import { resolveModelIdForLlmCall, summarizeWithModelId } from "./summary-llm.js";
 import { isRichTty, markdownRenderWidth, supportsColor } from "./terminal.js";
 import type { ModelAttempt, ModelMeta } from "./types.js";
+
+// Shrink `userText` until it fits the model's input-token budget, keeping a
+// head+tail window so the closing instructions and the document's conclusion
+// survive (see clipHeadAndTail). gpt-tokenizer only approximates the target
+// model's tokenizer, so we aim a little under budget and re-check the real
+// count, tightening a few times if the estimate ran long. Used in place of a
+// hard error when an assembled prompt is too large: a summary of a truncated
+// document beats no summary at all.
+export function fitUserTextToInputTokenBudget(userText: string, maxInputTokens: number): string {
+  const currentTokens = countTokens(userText);
+  if (currentTokens <= maxInputTokens) {
+    return userText;
+  }
+  const targetTokens = Math.max(1, Math.floor(maxInputTokens * 0.95));
+  let charBudget = Math.max(
+    1,
+    Math.floor(userText.length * (targetTokens / Math.max(1, currentTokens))),
+  );
+  let clipped = clipHeadAndTail(userText, charBudget);
+  for (let guard = 0; guard < 12 && countTokens(clipped) > maxInputTokens; guard += 1) {
+    charBudget = Math.max(1, Math.floor(charBudget * 0.9));
+    clipped = clipHeadAndTail(userText, charBudget);
+  }
+  return clipped;
+}
 
 export type SummaryEngineDeps = {
   env: Record<string, string | undefined>;
@@ -295,9 +321,21 @@ export function createSummaryEngine(deps: SummaryEngineDeps) {
     ) {
       const tokenCount = countTokens(prompt.userText);
       if (tokenCount > maxInputTokensForCall) {
-        throw new Error(
-          `Input token count (${formatCompactCount(tokenCount)}) exceeds model input limit (${formatCompactCount(maxInputTokensForCall)}). Tokenized with GPT tokenizer; prompt included.`,
+        // Too large for the model's context window. Rather than failing the
+        // run, clip the prompt to fit (keeping a head+tail window) so we still
+        // produce a summary of the available content.
+        const fittedUserText = fitUserTextToInputTokenBudget(
+          prompt.userText,
+          maxInputTokensForCall,
         );
+        writeVerbose(
+          deps.stderr,
+          deps.verbose,
+          `Input token count (${formatCompactCount(tokenCount)}) exceeds model input limit (${formatCompactCount(maxInputTokensForCall)}); truncated to ${formatCompactCount(countTokens(fittedUserText))} tokens (head+tail) to fit.`,
+          deps.verboseColor,
+          deps.envForRun,
+        );
+        prompt = { ...prompt, userText: fittedUserText };
       }
     }
 
