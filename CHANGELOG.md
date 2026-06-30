@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- Summaries: inputs larger than the model's context window are now truncated to fit (head + tail, keeping the document's opening and its conclusion) instead of aborting the run with an `Input token count exceeds model input limit` error. A degraded summary of a truncated document beats no summary. The same head+tail strategy now backs `--max-extract-characters` so the closing section survives an explicit content budget.
+
 ## 0.14.1 - 2026-04-26
 
 ### Features

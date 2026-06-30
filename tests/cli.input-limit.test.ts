@@ -28,7 +28,8 @@ vi.mock("@mariozechner/pi-ai", () => ({
 }));
 
 describe("cli input token limits", () => {
-  it("rejects large URL inputs before LLM calls", async () => {
+  it("truncates large URL inputs to fit the model input limit", async () => {
+    mocks.completeSimple.mockReset();
     mocks.completeSimple.mockImplementation(async (model: MockModel) =>
       makeAssistantMessage({
         text: "OK",
@@ -37,7 +38,6 @@ describe("cli input token limits", () => {
         api: model.api,
       }),
     );
-    mocks.completeSimple.mockReset();
 
     const root = mkdtempSync(join(tmpdir(), "summarize-input-limit-"));
     const cacheDir = join(root, ".summarize", "cache");
@@ -81,14 +81,13 @@ describe("cli input token limits", () => {
       },
     });
 
-    await expect(
-      runCli(["--model", "openai/gpt-5.2", "--timeout", "10s", "https://example.com"], {
-        env: { HOME: root, OPENAI_API_KEY: "test" },
-        fetch: fetchMock as unknown as typeof fetch,
-        stdout,
-        stderr,
-      }),
-    ).rejects.toThrow(/Input token count/i);
-    expect(mocks.completeSimple).toHaveBeenCalledTimes(0);
+    await runCli(["--model", "openai/gpt-5.2", "--timeout", "10s", "https://example.com"], {
+      env: { HOME: root, OPENAI_API_KEY: "test" },
+      fetch: fetchMock as unknown as typeof fetch,
+      stdout,
+      stderr,
+    });
+    // Oversized input is truncated to fit (head+tail) and summarized, not rejected.
+    expect(mocks.completeSimple).toHaveBeenCalledTimes(1);
   });
 });

@@ -229,7 +229,7 @@ describe("cli asset inputs (local file)", () => {
     globalFetchSpy.mockRestore();
   });
 
-  it("rejects local text files that exceed the input token limit", async () => {
+  it("truncates local text files that exceed the input token limit to fit", async () => {
     mocks.streamSimple.mockClear();
 
     const root = mkdtempSync(join(tmpdir(), "summarize-asset-local-token-limit-"));
@@ -263,20 +263,21 @@ describe("cli asset inputs (local file)", () => {
     const stdout = collectStream();
     const stderr = collectStream();
 
-    await expect(
-      runCli(
-        ["--model", "openai/gpt-5.2", "--timeout", "2s", "--stream", "on", "--plain", txtPath],
-        {
-          env: { HOME: root, OPENAI_API_KEY: "test" },
-          fetch: vi.fn(async () => {
-            throw new Error("unexpected fetch");
-          }) as unknown as typeof fetch,
-          stdout: stdout.stream,
-          stderr: stderr.stream,
-        },
-      ),
-    ).rejects.toThrow(/Input token count/i);
-    expect(mocks.streamSimple).toHaveBeenCalledTimes(0);
+    await runCli(
+      ["--model", "openai/gpt-5.2", "--timeout", "2s", "--stream", "on", "--plain", txtPath],
+      {
+        env: { HOME: root, OPENAI_API_KEY: "test" },
+        fetch: vi.fn(async () => {
+          throw new Error("unexpected fetch");
+        }) as unknown as typeof fetch,
+        stdout: stdout.stream,
+        stderr: stderr.stream,
+      },
+    );
+    // Oversized input is truncated to fit (head+tail) and still summarized,
+    // rather than failing the run.
+    expect(mocks.streamSimple).toHaveBeenCalledTimes(1);
+    expect(stdout.getText()).toContain("OK");
 
     globalFetchSpy.mockRestore();
   });
@@ -375,8 +376,10 @@ describe("cli asset inputs (local file)", () => {
     expect(mocks.streamSimple).toHaveBeenCalledTimes(0);
   });
 
-  it("errors when a text file exceeds the model input token limit", async () => {
+  it("truncates a text file that exceeds the model input token limit to fit", async () => {
     mocks.streamSimple.mockClear();
+    mocks.completeSimple.mockReset();
+    mocks.completeSimple.mockImplementation(async () => makeAssistantMessage({ text: "OK" }));
 
     const root = mkdtempSync(join(tmpdir(), "summarize-asset-local-tokens-"));
     const cacheDir = join(root, ".summarize", "cache");
@@ -406,20 +409,25 @@ describe("cli asset inputs (local file)", () => {
     const txtPath = join(root, "tokens.txt");
     writeFileSync(txtPath, "hello ".repeat(50), "utf8");
 
+    const stdout = collectStream();
     const run = () =>
       runCli(["--model", "openai/gpt-5.2", "--timeout", "2s", txtPath], {
         env: { HOME: root, OPENAI_API_KEY: "test" },
         fetch: vi.fn(async () => {
           throw new Error("unexpected fetch");
         }) as unknown as typeof fetch,
-        stdout: collectStream().stream,
+        stdout: stdout.stream,
         stderr: collectStream().stream,
       });
 
-    await expect(run()).rejects.toThrow(/token count/i);
-    await expect(run()).rejects.toThrow(/input limit/i);
+    await run();
+    // Oversized input is truncated to fit (head+tail) and still summarized via
+    // the non-streaming path, rather than failing the run.
+    expect(mocks.completeSimple).toHaveBeenCalledTimes(1);
     expect(mocks.streamSimple).toHaveBeenCalledTimes(0);
+    expect(stdout.getText()).toContain("OK");
 
+    mocks.completeSimple.mockReset();
     globalFetchSpy.mockRestore();
   });
 });
