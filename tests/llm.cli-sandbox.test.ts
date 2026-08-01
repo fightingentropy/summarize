@@ -93,6 +93,27 @@ describe("CLI sandbox", () => {
       expect(systemLaunch.args).toContain("--share-net");
       expect(systemLaunch.args).toContain(sandbox.rootDir);
 
+      const inheritedPathLaunch = await prepareSandboxedLaunch({
+        binary: "sh",
+        args: ["-c", "true"],
+        env: {},
+        sandbox,
+      });
+      expect(inheritedPathLaunch.cmd).toBe("bwrap");
+
+      const executableName = path.basename(process.execPath);
+      const pathResolvedLaunch = await prepareSandboxedLaunch({
+        binary: executableName,
+        args: [],
+        env: {
+          PATH: [`${sandbox.rootDir}/missing-bin`, path.dirname(process.execPath)].join(
+            path.delimiter,
+          ),
+        },
+        sandbox,
+      });
+      expect(pathResolvedLaunch.args).toContain(await fs.realpath(process.execPath));
+
       const customLaunch = await prepareSandboxedLaunch({
         binary: "/private/provider/bin/tool",
         args: [],
