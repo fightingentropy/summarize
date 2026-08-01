@@ -1,5 +1,9 @@
 import type { ProcessHandle } from "../processes.js";
 import { spawnTracked } from "../processes.js";
+import { prepareResourceLimitedCommand } from "../subprocess-limits.js";
+
+export const MAX_SUBPROCESS_TEXT_BYTES = 16 * 1024 * 1024;
+export const MAX_SUBPROCESS_BINARY_BYTES = 64 * 1024 * 1024;
 
 export async function runProcess({
   command,
@@ -17,7 +21,8 @@ export async function runProcess({
   onStdoutLine?: (line: string, handle: ProcessHandle | null) => void;
 }): Promise<void> {
   await new Promise<void>((resolve, reject) => {
-    const { proc, handle } = spawnTracked(command, args, {
+    const launch = prepareResourceLimitedCommand({ command, args, timeoutMs });
+    const { proc, handle } = spawnTracked(launch.command, launch.args, {
       stdio: ["ignore", "pipe", "pipe"],
       label: errorLabel,
       kind: errorLabel,
@@ -26,6 +31,14 @@ export async function runProcess({
     let stderr = "";
     let stderrBuffer = "";
     let stdoutBuffer = "";
+    let outputBytes = 0;
+    const enforceOutputLimit = (chunk: string) => {
+      outputBytes += Buffer.byteLength(chunk);
+      if (outputBytes <= MAX_SUBPROCESS_TEXT_BYTES) return true;
+      proc.kill("SIGKILL");
+      reject(new Error(`${errorLabel} exceeded output limit`));
+      return false;
+    };
 
     const flushLine = (line: string) => {
       onStderrLine?.(line, handle);
@@ -39,6 +52,7 @@ export async function runProcess({
     if (proc.stderr) {
       proc.stderr.setEncoding("utf8");
       proc.stderr.on("data", (chunk: string) => {
+        if (!enforceOutputLimit(chunk)) return;
         stderrBuffer += chunk;
         const lines = stderrBuffer.split(/\r?\n/);
         stderrBuffer = lines.pop() ?? "";
@@ -50,9 +64,10 @@ export async function runProcess({
 
     if (proc.stdout) {
       const handleStdoutLine = onStdoutLine ?? onStderrLine;
-      if (handleStdoutLine) {
-        proc.stdout.setEncoding("utf8");
-        proc.stdout.on("data", (chunk: string) => {
+      proc.stdout.setEncoding("utf8");
+      proc.stdout.on("data", (chunk: string) => {
+        if (!enforceOutputLimit(chunk)) return;
+        if (handleStdoutLine) {
           stdoutBuffer += chunk;
           const lines = stdoutBuffer.split(/\r?\n/);
           stdoutBuffer = lines.pop() ?? "";
@@ -61,8 +76,8 @@ export async function runProcess({
             handleStdoutLine(line, handle);
             handle?.appendOutput("stdout", line);
           }
-        });
-      }
+        }
+      });
     }
 
     const timeout = setTimeout(() => {
@@ -105,7 +120,8 @@ export async function runProcessCapture({
   errorLabel: string;
 }): Promise<string> {
   return new Promise((resolve, reject) => {
-    const { proc, handle } = spawnTracked(command, args, {
+    const launch = prepareResourceLimitedCommand({ command, args, timeoutMs });
+    const { proc, handle } = spawnTracked(launch.command, launch.args, {
       stdio: ["ignore", "pipe", "pipe"],
       label: errorLabel,
       kind: errorLabel,
@@ -115,6 +131,14 @@ export async function runProcessCapture({
     let stderr = "";
     let stdoutBuffer = "";
     let stderrBuffer = "";
+    let outputBytes = 0;
+    const enforceOutputLimit = (chunk: string) => {
+      outputBytes += Buffer.byteLength(chunk);
+      if (outputBytes <= MAX_SUBPROCESS_TEXT_BYTES) return true;
+      proc.kill("SIGKILL");
+      reject(new Error(`${errorLabel} exceeded output limit`));
+      return false;
+    };
 
     const timeout = setTimeout(() => {
       proc.kill("SIGKILL");
@@ -124,6 +148,7 @@ export async function runProcessCapture({
     if (proc.stdout) {
       proc.stdout.setEncoding("utf8");
       proc.stdout.on("data", (chunk: string) => {
+        if (!enforceOutputLimit(chunk)) return;
         stdout += chunk;
         stdoutBuffer += chunk;
         const lines = stdoutBuffer.split(/\r?\n/);
@@ -137,6 +162,7 @@ export async function runProcessCapture({
     if (proc.stderr) {
       proc.stderr.setEncoding("utf8");
       proc.stderr.on("data", (chunk: string) => {
+        if (!enforceOutputLimit(chunk)) return;
         if (stderr.length < 8192) stderr += chunk;
         stderrBuffer += chunk;
         const lines = stderrBuffer.split(/\r?\n/);
@@ -178,15 +204,18 @@ export async function runProcessCaptureBuffer({
   errorLabel: string;
 }): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const { proc, handle } = spawnTracked(command, args, {
+    const launch = prepareResourceLimitedCommand({ command, args, timeoutMs });
+    const { proc, handle } = spawnTracked(launch.command, launch.args, {
       stdio: ["ignore", "pipe", "pipe"],
       label: errorLabel,
       kind: errorLabel,
       captureOutput: false,
     });
     const chunks: Buffer[] = [];
+    let stdoutBytes = 0;
     let stderr = "";
     let stderrBuffer = "";
+    let stderrBytes = 0;
 
     const timeout = setTimeout(() => {
       proc.kill("SIGKILL");
@@ -195,6 +224,12 @@ export async function runProcessCaptureBuffer({
 
     if (proc.stdout) {
       proc.stdout.on("data", (chunk: Buffer) => {
+        stdoutBytes += chunk.byteLength;
+        if (stdoutBytes > MAX_SUBPROCESS_BINARY_BYTES) {
+          proc.kill("SIGKILL");
+          reject(new Error(`${errorLabel} exceeded binary output limit`));
+          return;
+        }
         chunks.push(chunk);
       });
     }
@@ -202,6 +237,12 @@ export async function runProcessCaptureBuffer({
     if (proc.stderr) {
       proc.stderr.setEncoding("utf8");
       proc.stderr.on("data", (chunk: string) => {
+        stderrBytes += Buffer.byteLength(chunk);
+        if (stderrBytes > MAX_SUBPROCESS_TEXT_BYTES) {
+          proc.kill("SIGKILL");
+          reject(new Error(`${errorLabel} exceeded stderr output limit`));
+          return;
+        }
         if (stderr.length < 8192) stderr += chunk;
         stderrBuffer += chunk;
         const lines = stderrBuffer.split(/\r?\n/);

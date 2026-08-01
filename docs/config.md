@@ -91,11 +91,10 @@ For UI theme:
     "claude": { "binary": "claude", "model": "" },
     "agent": { "binary": "agent", "model": "" },
     "autoFallback": {
-      "enabled": true,
+      "enabled": false,
       "onlyWhenNoApiKeys": true,
       "order": ["codex", "gemini", "claude", "agent"]
-    },
-    "allowTools": false
+    }
   },
   "openai": { "useChatCompletions": false, "whisperUsdPerMinute": 0.006 },
   "ui": { "theme": "aurora" },
@@ -266,7 +265,7 @@ Configure local CLI backends and let Codex use your own local default model when
     "claude": { "binary": "claude", "model": "" },
     "agent": { "binary": "agent", "model": "" },
     "autoFallback": {
-      "enabled": true,
+      "enabled": false,
       "onlyWhenNoApiKeys": true,
       "order": ["codex", "gemini", "claude", "agent"]
     }
@@ -401,7 +400,7 @@ Examples:
   "cli": {
     "enabled": ["gemini", "agent"],
     "autoFallback": {
-      "enabled": true,
+      "enabled": false,
       "onlyWhenNoApiKeys": true,
       "order": ["codex", "gemini", "claude", "agent"]
     },
@@ -414,12 +413,12 @@ Examples:
 
 Notes:
 
-- `cli.enabled` is an allowlist (and order) for auto + explicit CLI model ids.
-- `cli.autoFallback` controls implicit-auto CLI fallback when `cli.enabled` is not set.
-- Default auto fallback order: `codex, gemini, claude, agent`.
-- Auto fallback stores the last successful provider in `~/.summarize/cli-state.json` and prioritizes it on the next run.
+- `cli.enabled` is an allowlist/order for an explicitly requested `--cli` or `--model cli/...` run. It never activates a CLI provider on its own.
+- `cli.autoFallback` is retained for compatibility, defaults to disabled, and cannot activate agentic backends without an explicit CLI selection plus `--allow-agent-tools`.
+- Explicit `--cli` selection order defaults to `codex, gemini, claude, agent` and can prioritize the last successful provider from `~/.summarize/cli-state.json`.
 - `cli.<provider>.binary` overrides CLI binary discovery.
-- `cli.<provider>.extraArgs` appends extra CLI args.
+- `cli.<provider>.extraArgs` accepts only diagnostic flags (`--verbose`, `--debug`) plus the documented safe Codex service-tier/text-verbosity overrides; policy/tool/workspace overrides fail closed.
+- Provider CLI processes use a private temporary home/workspace and receive only a provider-specific environment allowlist; interactive login files are intentionally unavailable.
 
 ## OpenAI config
 

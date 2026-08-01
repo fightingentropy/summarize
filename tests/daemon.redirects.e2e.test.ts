@@ -1,9 +1,32 @@
-import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { runDaemonServer } from "../src/daemon/server.js";
+import { makeAssistantMessage, makeTextDeltaStream } from "./helpers/pi-ai-mock.js";
+
+const llmMocks = vi.hoisted(() => ({
+  streamSimple: vi.fn(),
+  getModel: vi.fn(() => {
+    throw new Error("no model");
+  }),
+}));
+
+vi.mock("@mariozechner/pi-ai", () => ({
+  streamSimple: llmMocks.streamSimple,
+  getModel: llmMocks.getModel,
+}));
+
+llmMocks.streamSimple.mockImplementation((_model: unknown, context: unknown) => {
+  const serialized = JSON.stringify(context);
+  const url = /Source URL: (https?:\/\/[^\\"]+)/.exec(serialized)?.[1] ?? "";
+  const summary = `URL=${url}`;
+  return makeTextDeltaStream(
+    [summary],
+    makeAssistantMessage({ text: summary, usage: { input: 1, output: 1, totalTokens: 2 } }),
+  );
+});
 
 const findFreePort = async (): Promise<number> =>
   await new Promise((resolve, reject) => {
@@ -20,32 +43,11 @@ const findFreePort = async (): Promise<number> =>
     });
   });
 
-const createFakeCodex = (dir: string): string => {
-  const scriptPath = join(dir, "fake-codex.js");
-  const script = `#!/usr/bin/env node
-const fs = require('fs');
-const args = process.argv.slice(2);
-const outputFlagIndex = args.indexOf('--output-last-message');
-const outputPath = outputFlagIndex >= 0 ? args[outputFlagIndex + 1] : null;
-const input = fs.readFileSync(0, 'utf8');
-const line = input.split(/\\r?\\n/).find((value) => value.startsWith('Source URL: '));
-const url = line ? line.slice('Source URL: '.length).trim() : '';
-if (outputPath) {
-  fs.writeFileSync(outputPath, url ? 'URL=' + url : 'URL=');
-}
-console.log(JSON.stringify({ usage: { input_tokens: 1, output_tokens: 1 } }));
-`;
-  writeFileSync(scriptPath, script, "utf8");
-  chmodSync(scriptPath, 0o755);
-  return scriptPath;
-};
-
 describe("daemon redirect e2e", () => {
   it("summarizes with the final redirect URL in the prompt", async () => {
     const home = mkdtempSync(join(tmpdir(), "summarize-daemon-redirects-"));
     const port = await findFreePort();
     const token = "test-token-1234567890";
-    const codexPath = createFakeCodex(home);
 
     const fetchImpl = async () => {
       const html = "<!doctype html><html><head><title>Ok</title></head><body>Hello</body></html>";
@@ -89,8 +91,7 @@ describe("daemon redirect e2e", () => {
     const serverPromise = runDaemonServer({
       env: {
         HOME: home,
-        SUMMARIZE_MODEL: "cli/codex",
-        SUMMARIZE_CLI_CODEX: codexPath,
+        OPENAI_API_KEY: "test",
       },
       fetchImpl: fetchImpl as typeof fetch,
       config: { token, port, version: 1, installedAt: new Date().toISOString() },
@@ -127,7 +128,7 @@ describe("daemon redirect e2e", () => {
         body: JSON.stringify({
           url: "https://t.co/abc",
           title: null,
-          model: "cli/codex",
+          model: "openai/gpt-5.2",
           length: "short",
           language: "auto",
           mode: "url",

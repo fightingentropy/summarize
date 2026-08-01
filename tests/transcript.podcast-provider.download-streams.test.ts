@@ -7,7 +7,10 @@ async function importPodcastProviderWithFfmpeg(plan: SpawnPlan) {
   vi.resetModules();
   vi.doMock("node:child_process", () => ({
     spawn: (_cmd: string, args: string[]) => {
-      if (_cmd === "ffprobe") {
+      const isFfprobe =
+        _cmd === "ffprobe" ||
+        (args.includes("summarize-subprocess-limit") && args.includes("ffprobe"));
+      if (isFfprobe) {
         const handlers = new Map<string, (value?: unknown) => void>();
         const proc = {
           stdout: { setEncoding: () => proc, on: (_event: string, _handler: unknown) => proc },
@@ -20,7 +23,10 @@ async function importPodcastProviderWithFfmpeg(plan: SpawnPlan) {
         return proc;
       }
 
-      if (_cmd !== "ffmpeg" || !args.includes("-version")) {
+      const isFfmpeg =
+        _cmd === "ffmpeg" ||
+        (args.includes("summarize-subprocess-limit") && args.includes("ffmpeg"));
+      if (!isFfmpeg || !args.includes("-version")) {
         throw new Error(`Unexpected spawn: ${_cmd} ${args.join(" ")}`);
       }
       const handlers = new Map<string, (value?: unknown) => void>();

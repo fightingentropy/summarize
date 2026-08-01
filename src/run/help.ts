@@ -135,11 +135,21 @@ export function buildProgram() {
     .addOption(
       new Option(
         "--cli [provider]",
-        "Use a CLI provider: claude, gemini, codex, agent (equivalent to --model cli/<provider>). If omitted, use auto selection with CLI enabled.",
+        "Use an agentic CLI provider: claude, gemini, codex, agent (requires --allow-agent-tools). If omitted, try explicitly enabled CLI providers.",
       ),
     )
+    .option(
+      "--allow-agent-tools",
+      "Explicitly opt in to an agentic CLI backend. Runs with isolated HOME/cwd, an environment allowlist, and read-only tool policy.",
+      false,
+    )
     .option("--extract", "Print extracted content and exit (no LLM summary)", false)
-    .option("--json", "Output structured JSON (includes prompt + metrics)", false)
+    .option("--json", "Output structured JSON (prompt omitted unless --include-prompt)", false)
+    .option(
+      "--include-prompt",
+      "Include the full prompt in --json output. This may expose private source content.",
+      false,
+    )
     .option(
       "--stream <mode>",
       "Stream LLM output: auto (TTY only), on, off. Note: streaming is disabled in --json mode.",

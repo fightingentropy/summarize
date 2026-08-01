@@ -3,6 +3,15 @@ import { writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { isCliDisabled, resolveCliBinary, runCliModel } from "../src/llm/cli.js";
 
+const runCliModelForTest = (options: Parameters<typeof runCliModel>[0]) =>
+  runCliModel({
+    ...options,
+    env: {
+      ...options.env,
+      [`SUMMARIZE_CLI_${options.provider.toUpperCase()}`]: process.execPath,
+    },
+  });
+
 describe("llm/cli more branches", () => {
   it("isCliDisabled respects cli.enabled allowlist", () => {
     expect(isCliDisabled("codex", { enabled: ["claude"] })).toBe(true);
@@ -32,7 +41,7 @@ describe("llm/cli more branches", () => {
 
   it("includes stderr in exec error messages", async () => {
     await expect(
-      runCliModel({
+      runCliModelForTest({
         provider: "gemini",
         prompt: "hi",
         model: "m",
@@ -50,7 +59,7 @@ describe("llm/cli more branches", () => {
   });
 
   it("does not duplicate stderr when exec error message already includes stderr", async () => {
-    const error = await runCliModel({
+    const error = await runCliModelForTest({
       provider: "gemini",
       prompt: "hi",
       model: "m",
@@ -74,7 +83,7 @@ describe("llm/cli more branches", () => {
   });
 
   it("formats timeout errors with duration and hint", async () => {
-    const error = await runCliModel({
+    const error = await runCliModelForTest({
       provider: "gemini",
       prompt: "hi",
       model: "m",
@@ -101,7 +110,7 @@ describe("llm/cli more branches", () => {
 
   it("codex: uses last-message file when present, otherwise stdout fallback", async () => {
     // file present
-    const resultFile = await runCliModel({
+    const resultFile = await runCliModelForTest({
       provider: "codex",
       prompt: "hi",
       model: null,
@@ -130,7 +139,7 @@ describe("llm/cli more branches", () => {
     expect(resultFile.costUsd).toBe(0.01);
 
     // stdout fallback when file is empty
-    const resultStdout = await runCliModel({
+    const resultStdout = await runCliModelForTest({
       provider: "codex",
       prompt: "hi",
       model: null,
@@ -152,7 +161,7 @@ describe("llm/cli more branches", () => {
 
   it("codex: gpt-fast alias resolves to gpt-5.5 with service_tier=fast", async () => {
     let capturedArgs: string[] | null = null;
-    const result = await runCliModel({
+    const result = await runCliModelForTest({
       provider: "codex",
       prompt: "hi",
       model: "gpt-fast",
@@ -181,7 +190,7 @@ describe("llm/cli more branches", () => {
 
   it("codex: existing service_tier override is preserved", async () => {
     let capturedArgs: string[] | null = null;
-    await runCliModel({
+    await runCliModelForTest({
       provider: "codex",
       prompt: "hi",
       model: "gpt-5.5-fast",
@@ -205,7 +214,7 @@ describe("llm/cli more branches", () => {
   });
 
   it("returns trimmed stdout when JSON payload has no usable result field", async () => {
-    const result = await runCliModel({
+    const result = await runCliModelForTest({
       provider: "claude",
       prompt: "hi",
       model: "m",

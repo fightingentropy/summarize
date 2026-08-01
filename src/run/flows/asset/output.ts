@@ -88,7 +88,6 @@ export async function outputExtractedAsset({
         filename: attachment.filename,
         content: extracted.content,
       },
-      prompt: null,
       llm: null,
       metrics: flags.metricsEnabled ? finishReport : null,
       summary: null,

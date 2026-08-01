@@ -51,6 +51,8 @@ export type UrlFlowFlags = {
   summaryCacheBypass: boolean;
   maxOutputTokensArg: number | null;
   json: boolean;
+  includePrompt?: boolean;
+  allowAgentTools?: boolean;
   extractMode: boolean;
   metricsEnabled: boolean;
   metricsDetailed: boolean;

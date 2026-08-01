@@ -82,6 +82,20 @@ function collectStream() {
 }
 
 describe("cli run.ts CLI provider model path", () => {
+  it("requires an explicit agent-tools opt-in", async () => {
+    const stdout = collectStream();
+    const stderr = collectStream();
+
+    await expect(
+      runCli(["--model", "cli/codex/gpt-5.2", "--timeout", "2s", "https://example.com"], {
+        env: {},
+        fetch: vi.fn() as unknown as typeof fetch,
+        stdout: stdout.stream,
+        stderr: stderr.stream,
+      }),
+    ).rejects.toThrow(/--allow-agent-tools/);
+  });
+
   it("summarizes via cli/<provider> and includes metrics finish line", async () => {
     const stdout = collectStream();
     const stderr = collectStream();
@@ -91,6 +105,7 @@ describe("cli run.ts CLI provider model path", () => {
       [
         "--model",
         "cli/codex/gpt-5.2",
+        "--allow-agent-tools",
         "--metrics",
         "detailed",
         "--timeout",

@@ -22,9 +22,7 @@ This is also the built-in default when you don’t specify a model.
 - On any request error, tries the next attempt.
 - If no model is usable, prints the extracted text (no LLM summary). Use `--extract` if you want the raw extracted content even when models are available.
 - Built-in defaults prefer `openai/gpt-5-mini` for text/website/file/image inputs and `google/gemini-3-flash` for video inputs.
-- Auto prepends CLI attempts when either:
-  - `cli.enabled` is set (order follows `cli.enabled`), or
-  - implicit auto selection is active and `cli.autoFallback` allows it.
+- Auto prepends CLI attempts only for an explicit `--cli` selection paired with `--allow-agent-tools`. `cli.enabled` can restrict/order that explicit run but never activates it.
 
 ## OpenRouter vs native
 

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   type AssetAttachment,
   assertAssetMediaTypeSupported,
-  ensureCliAttachmentPath,
+  createCliAttachmentSandbox,
   getFileBytesFromAttachment,
   getTextContentFromAttachment,
   isTextLikeMediaType,
@@ -98,14 +98,12 @@ describe("run/attachments", () => {
       bytes,
       filename: "data.json",
     } as unknown as AssetAttachment;
-    const filePath = await ensureCliAttachmentPath({
-      sourceKind: "asset-url",
-      sourceLabel: "https://example.com/data.json",
-      attachment,
-    });
-    const contents = await fs.readFile(filePath);
+    const sandbox = await createCliAttachmentSandbox({ attachment });
+    const contents = await fs.readFile(sandbox.filePath);
     expect(contents).toEqual(Buffer.from(bytes));
-    await fs.rm(path.dirname(filePath), { recursive: true, force: true });
+    expect((await fs.stat(sandbox.rootDir)).mode & 0o777).toBe(0o700);
+    expect((await fs.stat(sandbox.filePath)).mode & 0o777).toBe(0o600);
+    await sandbox.cleanup();
   });
 
   it("throws when CLI attachment bytes are missing", async () => {
@@ -114,16 +112,12 @@ describe("run/attachments", () => {
       mediaType: "application/json",
       bytes: null,
     } as unknown as AssetAttachment;
-    await expect(
-      ensureCliAttachmentPath({
-        sourceKind: "asset-url",
-        sourceLabel: "https://example.com/data.json",
-        attachment,
-      }),
-    ).rejects.toThrow("CLI attachment missing bytes");
+    await expect(createCliAttachmentSandbox({ attachment })).rejects.toThrow(
+      "CLI attachment missing bytes",
+    );
   });
 
-  it("keeps file source paths as-is", async () => {
+  it("copies local input bytes instead of exposing the original path", async () => {
     const base = await fs.mkdtemp(path.join(os.tmpdir(), "summarize-asset-"));
     const filePath = path.join(base, "sample.txt");
     await fs.writeFile(filePath, "ok");
@@ -133,12 +127,10 @@ describe("run/attachments", () => {
       bytes: new Uint8Array([1]),
       filename: "sample.txt",
     } as unknown as AssetAttachment;
-    const resolved = await ensureCliAttachmentPath({
-      sourceKind: "file",
-      sourceLabel: filePath,
-      attachment,
-    });
-    expect(resolved).toBe(filePath);
+    const sandbox = await createCliAttachmentSandbox({ attachment });
+    expect(sandbox.filePath).not.toBe(filePath);
+    expect(await fs.readFile(sandbox.filePath)).toEqual(Buffer.from([1]));
+    await sandbox.cleanup();
     await fs.rm(base, { recursive: true, force: true });
   });
 

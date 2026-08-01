@@ -340,7 +340,6 @@ export function parseCliConfig(root: Record<string, unknown>, path: string): Cli
     typeof value.promptOverride === "string" && value.promptOverride.trim().length > 0
       ? value.promptOverride.trim()
       : undefined;
-  const allowTools = typeof value.allowTools === "boolean" ? value.allowTools : undefined;
   const cwd =
     typeof value.cwd === "string" && value.cwd.trim().length > 0 ? value.cwd.trim() : undefined;
   const extraArgs =
@@ -355,7 +354,6 @@ export function parseCliConfig(root: Record<string, unknown>, path: string): Cli
     agent ||
     autoFallback ||
     promptOverride ||
-    typeof allowTools === "boolean" ||
     cwd ||
     (extraArgs && extraArgs.length > 0)
     ? {
@@ -366,7 +364,6 @@ export function parseCliConfig(root: Record<string, unknown>, path: string): Cli
         ...(agent ? { agent } : {}),
         ...(autoFallback ? { autoFallback } : {}),
         ...(promptOverride ? { promptOverride } : {}),
-        ...(typeof allowTools === "boolean" ? { allowTools } : {}),
         ...(cwd ? { cwd } : {}),
         ...(extraArgs && extraArgs.length > 0 ? { extraArgs } : {}),
       }

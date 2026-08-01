@@ -1,5 +1,6 @@
 import type { ExecFileException } from "node:child_process";
 import type { ExecFileFn } from "../markitdown.js";
+import { CLI_MAX_OUTPUT_BYTES } from "./cli-sandbox.js";
 
 type CliExecError = ExecFileException & {
   cmd?: string;
@@ -77,9 +78,11 @@ export async function execCliWithInput({
       args,
       {
         timeout: timeoutMs,
-        env: { ...process.env, ...env },
+        env,
         cwd,
-        maxBuffer: 50 * 1024 * 1024,
+        maxBuffer: CLI_MAX_OUTPUT_BYTES,
+        killSignal: "SIGKILL",
+        windowsHide: true,
       },
       (error, stdout, stderr) => {
         const stderrText = toUtf8String(stderr);

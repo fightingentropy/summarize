@@ -31,6 +31,44 @@ describe("markitdown", () => {
     ).resolves.toContain("# ok");
   });
 
+  it("uses a private home, a bounded buffer, and an environment allowlist", async () => {
+    const execFileMock = vi.fn((_file, args, opts, cb) => {
+      const options = opts as {
+        cwd?: string;
+        env?: Record<string, string>;
+        maxBuffer?: number;
+        killSignal?: string;
+      };
+      const filePath = String(args[3]);
+      expect(filePath.startsWith(`${options.cwd}/`)).toBe(true);
+      expect(options.env?.HOME?.startsWith(`${options.cwd}/`)).toBe(true);
+      expect(options.env?.HOME).not.toBe("/private/user-home");
+      expect(options.env?.AWS_SECRET_ACCESS_KEY).toBeUndefined();
+      expect(options.env?.OPENAI_API_KEY).toBeUndefined();
+      expect(options.env?.PATH).toBe("/usr/bin:/bin");
+      expect(options.maxBuffer).toBe(8 * 1024 * 1024);
+      expect(options.killSignal).toBe("SIGKILL");
+      cb(null, "# ok\n", "");
+    }) as unknown as ExecFileFn;
+
+    await expect(
+      convertToMarkdownWithMarkitdown({
+        bytes: new Uint8Array([1, 2, 3]),
+        filenameHint: "x.pdf",
+        mediaTypeHint: "application/pdf",
+        uvxCommand: null,
+        timeoutMs: 1000,
+        env: {
+          HOME: "/private/user-home",
+          PATH: "/usr/bin:/bin",
+          AWS_SECRET_ACCESS_KEY: "canary",
+          OPENAI_API_KEY: "canary",
+        },
+        execFileImpl: execFileMock,
+      }),
+    ).resolves.toContain("# ok");
+  });
+
   it("uses filename extension when present (no media type hint)", async () => {
     const execFileMock = vi.fn((file, args, _opts, cb) => {
       expect(file).toBe("uvx");

@@ -61,7 +61,7 @@ describe("cli --json", () => {
     }
   });
 
-  it("prints JSON with prompt in --extract mode (no LLM call)", async () => {
+  it("omits the prompt from JSON by default in --extract mode", async () => {
     const html =
       '<!doctype html><html><head><title>Ok</title><meta name="description" content="Desc" /></head>' +
       `<body><article><p>${"A".repeat(260)}</p></article></body></html>`;
@@ -110,6 +110,7 @@ describe("cli --json", () => {
       };
       llm: unknown;
       summary: unknown;
+      prompt?: unknown;
     };
     expect(parsed.env.hasXaiKey).toBe(false);
     expect(parsed.env.hasOpenAIKey).toBe(false);
@@ -117,6 +118,7 @@ describe("cli --json", () => {
     expect(parsed.env.hasAnthropicKey).toBe(false);
     expect(parsed.llm).toBeNull();
     expect(parsed.summary).toBeNull();
+    expect(parsed).not.toHaveProperty("prompt");
   });
 
   it("caps prompt guidance when requested length exceeds extracted content", async () => {
@@ -142,7 +144,16 @@ describe("cli --json", () => {
     });
 
     await runCli(
-      ["--json", "--extract", "--length", "xxl", "--timeout", "2s", "https://example.com"],
+      [
+        "--json",
+        "--include-prompt",
+        "--extract",
+        "--length",
+        "xxl",
+        "--timeout",
+        "2s",
+        "https://example.com",
+      ],
       {
         env: { HOME: home },
         fetch: fetchMock as unknown as typeof fetch,

@@ -1,8 +1,12 @@
 import fs from "node:fs/promises";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import mime from "mime";
 import type { loadLocalAsset } from "../content/asset.js";
+import {
+  createCliSandbox,
+  safeCliAttachmentFilename,
+  type CliSandbox,
+} from "../llm/cli-sandbox.js";
 import { formatBytes } from "../tty/format.js";
 
 export type AssetAttachment = Awaited<ReturnType<typeof loadLocalAsset>>["attachment"];
@@ -92,16 +96,13 @@ function getAttachmentBytes(attachment: AssetAttachment): Uint8Array | null {
   return attachment.bytes;
 }
 
-export async function ensureCliAttachmentPath({
-  sourceKind,
-  sourceLabel,
+export type CliAttachmentSandbox = CliSandbox & { filePath: string };
+
+export async function createCliAttachmentSandbox({
   attachment,
 }: {
-  sourceKind: "file" | "asset-url";
-  sourceLabel: string;
   attachment: AssetAttachment;
-}): Promise<string> {
-  if (sourceKind === "file") return sourceLabel;
+}): Promise<CliAttachmentSandbox> {
   const bytes = getAttachmentBytes(attachment);
   if (!bytes) {
     throw new Error("CLI attachment missing bytes");
@@ -112,11 +113,16 @@ export async function ensureCliAttachmentPath({
       : attachment.mediaType
         ? `.${mime.getExtension(attachment.mediaType) ?? "bin"}`
         : ".bin";
-  const filename = attachment.filename?.trim() || `asset${ext}`;
-  const dir = await fs.mkdtemp(path.join(tmpdir(), "summarize-cli-asset-"));
-  const filePath = path.join(dir, filename);
-  await fs.writeFile(filePath, bytes);
-  return filePath;
+  const sandbox = await createCliSandbox();
+  const filename = safeCliAttachmentFilename(attachment.filename?.trim() || null, ext);
+  const filePath = path.join(sandbox.workDir, filename);
+  try {
+    await fs.writeFile(filePath, bytes, { mode: 0o600, flag: "wx" });
+  } catch (error) {
+    await sandbox.cleanup();
+    throw error;
+  }
+  return { ...sandbox, filePath };
 }
 
 export function shouldMarkitdownConvertMediaType(mediaType: string): boolean {

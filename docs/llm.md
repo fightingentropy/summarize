@@ -11,14 +11,12 @@ read_when:
 
 # LLM / summarization mode
 
-By default `summarize` will call an LLM using **direct provider API keys**. When CLI tools are
-installed, auto mode can use local CLI models via `cli.enabled` or implicit auto CLI fallback
-(`cli.autoFallback`; see `docs/cli.md`).
+By default `summarize` calls an LLM using **direct provider API keys**. Installed coding CLIs are never discovered by normal auto mode. They require an explicit `--cli` or `--model cli/...` selection plus `--allow-agent-tools` (see `docs/cli.md`).
 
 ## Defaults
 
 - Default model: `auto`
-- Built-in auto ordering prefers `openai/gpt-5-mini` for text/website/file/image inputs, keeps Gemini first for video, and uses Codex first for implicit CLI fallback when no API keys are configured.
+- Built-in auto ordering prefers `openai/gpt-5-mini` for text/website/file/image inputs and keeps Gemini first for video. CLI providers are excluded.
 - Override with `SUMMARIZE_MODEL`, config file (`model`), or `--model`.
 
 ## Env
@@ -61,7 +59,9 @@ installed, auto mode can use local CLI models via `cli.enabled` or implicit auto
     - `anthropic/claude-sonnet-4-5`
     - `openrouter/meta-llama/llama-3.3-70b-instruct:free` (force OpenRouter)
 - `--cli [provider]`
-  - Examples: `--cli claude`, `--cli Gemini`, `--cli codex`, `--cli agent` (equivalent to `--model cli/<provider>`); `--cli` alone uses auto selection with CLI enabled.
+  - Examples: `--allow-agent-tools --cli claude`, `--allow-agent-tools --cli Gemini`, `--allow-agent-tools --cli codex`, `--allow-agent-tools --cli agent` (equivalent to an explicit `--model cli/<provider>` selection).
+- `--allow-agent-tools`
+  - Required for agentic CLI backends; it is intentionally per-run and unavailable to daemon requests.
 - `--model auto`
   - See `docs/model-auto.md`
 - `--model <preset>`
@@ -92,7 +92,8 @@ installed, auto mode can use local CLI models via `cli.enabled` or implicit auto
   - Recommendation: prefer `--length` unless you need a hard cap (some providers count “reasoning” into the cap).
 - `--retries <count>`
   - LLM retry attempts on timeout (default: 1).
-- `--json` (includes prompt + summary in one JSON object)
+- `--json` (omits the prompt by default)
+- `--include-prompt` (include the full prompt in JSON; may expose private source content in logs)
 
 ## Prompt rules
 

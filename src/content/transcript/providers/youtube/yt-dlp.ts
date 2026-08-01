@@ -3,6 +3,7 @@ import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnTracked } from "../../../../processes.js";
+import { prepareResourceLimitedCommand } from "../../../../subprocess-limits.js";
 import {
   probeMediaDurationSecondsWithFfprobe,
   type TranscriptionProvider,
@@ -19,6 +20,7 @@ import {
 import { resolveTranscriptionStartInfo } from "../transcription-start.js";
 
 const YT_DLP_TIMEOUT_MS = 300_000;
+const YT_DLP_MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
 const MAX_STDERR_BYTES = 8192;
 const DEFAULT_AUDIO_FORMAT =
   "bestaudio[vcodec=none]/best[height<=360]/best[height<=480]/best[height<=720]/best";
@@ -237,13 +239,20 @@ export const fetchDurationSecondsWithYtDlp = async ({
 
   return new Promise((resolve) => {
     const args = ["--skip-download", "--dump-json", "--no-playlist", "--no-warnings", url];
-    const { proc } = spawnTracked(ytDlpPath, args, {
+    const launch = prepareResourceLimitedCommand({
+      command: ytDlpPath,
+      args,
+      timeoutMs: 30_000,
+      memoryLimitMb: 2048,
+    });
+    const { proc } = spawnTracked(launch.command, launch.args, {
       stdio: ["ignore", "pipe", "pipe"],
       label: "yt-dlp",
       kind: "yt-dlp",
     });
     let stdout = "";
     let stderr = "";
+    let outputBytes = 0;
 
     const timeout = setTimeout(() => {
       proc.kill("SIGKILL");
@@ -251,10 +260,22 @@ export const fetchDurationSecondsWithYtDlp = async ({
     }, 30_000);
 
     proc.stdout?.on("data", (chunk) => {
+      outputBytes += Buffer.byteLength(chunk);
+      if (outputBytes > YT_DLP_MAX_OUTPUT_BYTES) {
+        proc.kill("SIGKILL");
+        resolve(null);
+        return;
+      }
       stdout += chunk.toString();
     });
 
     proc.stderr?.on("data", (chunk) => {
+      outputBytes += Buffer.byteLength(chunk);
+      if (outputBytes > YT_DLP_MAX_OUTPUT_BYTES) {
+        proc.kill("SIGKILL");
+        resolve(null);
+        return;
+      }
       stderr += chunk.toString();
       if (stderr.length > MAX_STDERR_BYTES) {
         stderr = stderr.slice(-MAX_STDERR_BYTES);
@@ -323,7 +344,13 @@ async function downloadAudio(
       url,
     ];
 
-    const { proc, handle } = spawnTracked(ytDlpPath, args, {
+    const launch = prepareResourceLimitedCommand({
+      command: ytDlpPath,
+      args,
+      timeoutMs: YT_DLP_TIMEOUT_MS,
+      memoryLimitMb: 2048,
+    });
+    const { proc, handle } = spawnTracked(launch.command, launch.args, {
       stdio: ["ignore", "pipe", "pipe"],
       label: "yt-dlp",
       kind: "yt-dlp",
@@ -331,6 +358,15 @@ async function downloadAudio(
     let stderr = "";
     let progressBuffer = "";
     let lastTotalBytes: number | null = null;
+    let outputBytes = 0;
+
+    const accountOutput = (chunk: string): boolean => {
+      outputBytes += Buffer.byteLength(chunk);
+      if (outputBytes <= YT_DLP_MAX_OUTPUT_BYTES) return true;
+      proc.kill("SIGKILL");
+      reject(new Error("yt-dlp exceeded the output limit"));
+      return false;
+    };
 
     const reportProgress = (downloadedBytes: number, totalBytes: number | null): void => {
       if (!onProgress) return;
@@ -369,6 +405,7 @@ async function downloadAudio(
     if (proc.stdout) {
       proc.stdout.setEncoding("utf8");
       proc.stdout.on("data", (chunk: string) => {
+        if (!accountOutput(chunk)) return;
         handleProgressChunk(chunk);
       });
     }
@@ -376,6 +413,7 @@ async function downloadAudio(
     if (proc.stderr) {
       proc.stderr.setEncoding("utf8");
       proc.stderr.on("data", (chunk: string) => {
+        if (!accountOutput(chunk)) return;
         if (stderr.length < MAX_STDERR_BYTES) {
           const remaining = MAX_STDERR_BYTES - stderr.length;
           stderr += chunk.slice(0, remaining);
@@ -385,7 +423,7 @@ async function downloadAudio(
     }
 
     const timeout = setTimeout(() => {
-      proc.kill("SIGTERM");
+      proc.kill("SIGKILL");
       reject(new Error("yt-dlp download timeout"));
     }, YT_DLP_TIMEOUT_MS);
 

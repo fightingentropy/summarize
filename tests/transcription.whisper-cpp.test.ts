@@ -4,6 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
+const isCommand = (command: string, args: string[], expected: string) =>
+  command === expected || (args.includes("summarize-subprocess-limit") && args.includes(expected));
+
 describe("transcription/whisper local whisper.cpp", () => {
   it("derives a compact whisper.cpp model name for display", async () => {
     const root = await mkdtemp(join(tmpdir(), "summarize-whisper-cpp-model-name-"));
@@ -400,7 +403,11 @@ describe("transcription/whisper local whisper.cpp", () => {
           const proc = {
             on(event: string, handler: (value?: unknown) => void) {
               handlers.set(event, handler);
-              if (_cmd === "ffmpeg" && args.includes("-version") && event === "error") {
+              if (
+                isCommand(_cmd, args, "ffmpeg") &&
+                args.includes("-version") &&
+                event === "error"
+              ) {
                 queueMicrotask(() => handler(new Error("spawn ENOENT")));
               }
               return proc;
@@ -412,7 +419,7 @@ describe("transcription/whisper local whisper.cpp", () => {
             return proc;
           }
 
-          if (_cmd === "ffmpeg" && args.includes("-version")) {
+          if (isCommand(_cmd, args, "ffmpeg") && args.includes("-version")) {
             queueMicrotask(() => handlers.get("error")?.(new Error("spawn ENOENT")));
             return proc;
           }
@@ -581,12 +588,12 @@ describe("transcription/whisper local whisper.cpp", () => {
           return proc;
         }
 
-        if (_cmd === "ffmpeg" && args.includes("-version")) {
+        if (isCommand(_cmd, args, "ffmpeg") && args.includes("-version")) {
           close(0);
           return proc;
         }
 
-        if (_cmd === "ffmpeg") {
+        if (isCommand(_cmd, args, "ffmpeg")) {
           const output = args[args.length - 1] ?? "";
           void writeFile(output, new Uint8Array([9, 9, 9])).then(() => close(0));
           return proc;
@@ -647,7 +654,7 @@ describe("transcription/whisper local whisper.cpp", () => {
           return proc;
         }
 
-        if (_cmd === "ffmpeg" && args.includes("-version")) {
+        if (isCommand(_cmd, args, "ffmpeg") && args.includes("-version")) {
           queueMicrotask(() => handlers.get("error")?.(new Error("spawn ENOENT")));
           return proc;
         }

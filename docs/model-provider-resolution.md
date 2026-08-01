@@ -20,7 +20,7 @@ Goal: reduce implicit provider knowledge.
   Source of truth for:
   - required env per provider
   - CLI default models
-  - auto CLI order
+  - explicit CLI order
   - document support
   - streaming support
 
@@ -31,7 +31,7 @@ If a provider rule changes, update this file first.
 - `src/model-auto.ts`
   Responsibilities:
   - resolve auto rules
-  - prepend CLI candidates
+  - prepend CLI candidates only after an explicit per-run opt-in
   - map native candidates to OpenRouter when safe
   - emit attempts with required env + transport
 

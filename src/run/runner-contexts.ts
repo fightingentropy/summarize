@@ -71,6 +71,8 @@ export function createRunnerFlowContexts(options: {
     isNamedModelSelection: model.isNamedModelSelection,
     maxOutputTokensArg: flags.maxOutputTokensArg,
     json: flags.json,
+    includePrompt: flags.includePrompt,
+    allowAgentTools: flags.allowAgentTools,
     metricsEnabled: flags.metricsEnabled,
     metricsDetailed: flags.metricsDetailed,
     shouldComputeReport: flags.shouldComputeReport,

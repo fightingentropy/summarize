@@ -27,7 +27,8 @@ For the full model/provider matrix, see `docs/llm.md`.
   - This is _soft guidance_ to the model (no hard truncation).
 - `--max-output-tokens <count>`
   - Hard cap for output tokens (optional).
-- `--json` (includes prompt + summary in one JSON object)
+- `--json` (omits the prompt by default)
+- `--include-prompt` (include the full prompt in JSON; may expose private source content in logs)
 
 ## PDF inputs
 

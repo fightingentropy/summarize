@@ -3,17 +3,38 @@ import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnTracked } from "../../processes.js";
+import { prepareResourceLimitedCommand } from "../../subprocess-limits.js";
+
+const FFMPEG_PROBE_TIMEOUT_MS = 10_000;
+const FFMPEG_OPERATION_TIMEOUT_MS = 10 * 60_000;
+const FFMPEG_MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
 
 export async function isFfmpegAvailable(): Promise<boolean> {
   return new Promise((resolve) => {
-    const { proc } = spawnTracked("ffmpeg", ["-version"], {
+    const launch = prepareResourceLimitedCommand({
+      command: "ffmpeg",
+      args: ["-version"],
+      timeoutMs: FFMPEG_PROBE_TIMEOUT_MS,
+      memoryLimitMb: 1024,
+    });
+    const { proc } = spawnTracked(launch.command, launch.args, {
       stdio: ["ignore", "ignore", "ignore"],
       label: "ffmpeg",
       kind: "ffmpeg",
       captureOutput: false,
     });
-    proc.on("error", () => resolve(false));
-    proc.on("close", (code) => resolve(code === 0));
+    const timeout = setTimeout(() => {
+      proc.kill("SIGKILL");
+      resolve(false);
+    }, FFMPEG_PROBE_TIMEOUT_MS);
+    proc.on("error", () => {
+      clearTimeout(timeout);
+      resolve(false);
+    });
+    proc.on("close", (code) => {
+      clearTimeout(timeout);
+      resolve(code === 0);
+    });
   });
 }
 
@@ -32,19 +53,40 @@ export async function probeMediaDurationSecondsWithFfprobe(
       "default=noprint_wrappers=1:nokey=1",
       filePath,
     ];
-    const { proc } = spawnTracked("ffprobe", args, {
+    const launch = prepareResourceLimitedCommand({
+      command: "ffprobe",
+      args,
+      timeoutMs: FFMPEG_PROBE_TIMEOUT_MS,
+      memoryLimitMb: 1024,
+    });
+    const { proc } = spawnTracked(launch.command, launch.args, {
       stdio: ["ignore", "pipe", "ignore"],
       label: "ffprobe",
       kind: "ffprobe",
     });
+    const timeout = setTimeout(() => {
+      proc.kill("SIGKILL");
+      resolve(null);
+    }, FFMPEG_PROBE_TIMEOUT_MS);
     let stdout = "";
+    let outputBytes = 0;
     proc.stdout?.setEncoding("utf8");
     proc.stdout?.on("data", (chunk: string) => {
+      outputBytes += Buffer.byteLength(chunk);
+      if (outputBytes > FFMPEG_MAX_OUTPUT_BYTES) {
+        proc.kill("SIGKILL");
+        resolve(null);
+        return;
+      }
       if (stdout.length > 2048) return;
       stdout += chunk;
     });
-    proc.on("error", () => resolve(null));
+    proc.on("error", () => {
+      clearTimeout(timeout);
+      resolve(null);
+    });
     proc.on("close", (code) => {
+      clearTimeout(timeout);
       if (code !== 0) {
         resolve(null);
         return;
@@ -87,19 +129,39 @@ export async function runFfmpegSegment({
       "1",
       outputPattern,
     ];
-    const { proc } = spawnTracked("ffmpeg", args, {
+    const launch = prepareResourceLimitedCommand({
+      command: "ffmpeg",
+      args,
+      timeoutMs: FFMPEG_OPERATION_TIMEOUT_MS,
+    });
+    const { proc } = spawnTracked(launch.command, launch.args, {
       stdio: ["ignore", "ignore", "pipe"],
       label: "ffmpeg",
       kind: "ffmpeg",
     });
+    const timeout = setTimeout(() => {
+      proc.kill("SIGKILL");
+      reject(new Error("ffmpeg segment operation timed out"));
+    }, FFMPEG_OPERATION_TIMEOUT_MS);
     let stderr = "";
+    let outputBytes = 0;
     proc.stderr?.setEncoding("utf8");
     proc.stderr?.on("data", (chunk: string) => {
+      outputBytes += Buffer.byteLength(chunk);
+      if (outputBytes > FFMPEG_MAX_OUTPUT_BYTES) {
+        proc.kill("SIGKILL");
+        reject(new Error("ffmpeg segment operation exceeded output limit"));
+        return;
+      }
       if (stderr.length > 8192) return;
       stderr += chunk;
     });
-    proc.on("error", (error) => reject(error));
+    proc.on("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
     proc.on("close", (code) => {
+      clearTimeout(timeout);
       if (code === 0) {
         resolve();
         return;
@@ -234,19 +296,39 @@ async function runFfmpegTranscode({
   args: string[];
 }): Promise<void> {
   await new Promise<void>((resolve, reject) => {
-    const { proc } = spawnTracked("ffmpeg", args, {
+    const launch = prepareResourceLimitedCommand({
+      command: "ffmpeg",
+      args,
+      timeoutMs: FFMPEG_OPERATION_TIMEOUT_MS,
+    });
+    const { proc } = spawnTracked(launch.command, launch.args, {
       stdio: ["ignore", "ignore", "pipe"],
       label: "ffmpeg",
       kind: "ffmpeg",
     });
+    const timeout = setTimeout(() => {
+      proc.kill("SIGKILL");
+      reject(new Error(`ffmpeg ${mode} transcode timed out`));
+    }, FFMPEG_OPERATION_TIMEOUT_MS);
     let stderr = "";
+    let outputBytes = 0;
     proc.stderr?.setEncoding("utf8");
     proc.stderr?.on("data", (chunk: string) => {
+      outputBytes += Buffer.byteLength(chunk);
+      if (outputBytes > FFMPEG_MAX_OUTPUT_BYTES) {
+        proc.kill("SIGKILL");
+        reject(new Error(`ffmpeg ${mode} transcode exceeded output limit`));
+        return;
+      }
       if (stderr.length > 8192) return;
       stderr += chunk;
     });
-    proc.on("error", (error) => reject(error));
+    proc.on("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
     proc.on("close", (code) => {
+      clearTimeout(timeout);
       if (code === 0) {
         resolve();
         return;

@@ -7,11 +7,13 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { spawnTracked } from "../processes.js";
 import { resolveExecutableInPath } from "../run/env.js";
+import { prepareResourceLimitedCommand } from "../subprocess-limits.js";
 import { runWithConcurrency } from "./process.js";
 import type { SlideImage } from "./types.js";
 
 const OCR_TIMEOUT_MS = 120_000;
 const SWIFTC_TIMEOUT_MS = 120_000;
+const OCR_MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
 const VISION_HELPER_ENV = "SUMMARIZE_VISION_OCR_HELPER";
 const SWIFTC_ENV = "SUMMARIZE_SWIFTC_PATH";
 const BUNDLED_HELPER_PREFIX = "vision-ocr-helper";
@@ -145,7 +147,13 @@ export async function resolveSlidesOcrPath(
 
     await mkdir(path.dirname(outputPath), { recursive: true });
     try {
-      await execFileAsync(swiftcPath, [sourcePath, "-O", "-o", outputPath], {
+      const launch = prepareResourceLimitedCommand({
+        command: swiftcPath,
+        args: [sourcePath, "-O", "-o", outputPath],
+        timeoutMs: SWIFTC_TIMEOUT_MS,
+        memoryLimitMb: 4096,
+      });
+      await execFileAsync(launch.command, launch.args, {
         timeout: SWIFTC_TIMEOUT_MS,
         maxBuffer: 10 * 1024 * 1024,
       });
@@ -233,7 +241,13 @@ export async function runVisionOcr(
   options?: VisionOcrRuntimeOptions,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const { proc, handle } = spawnTracked(helperPath, buildVisionOcrArgs(imagePath, options), {
+    const launch = prepareResourceLimitedCommand({
+      command: helperPath,
+      args: buildVisionOcrArgs(imagePath, options),
+      timeoutMs: OCR_TIMEOUT_MS,
+      memoryLimitMb: 2048,
+    });
+    const { proc, handle } = spawnTracked(launch.command, launch.args, {
       stdio: ["ignore", "pipe", "pipe"],
       label: "vision-ocr",
       kind: "vision-ocr",
@@ -242,6 +256,7 @@ export async function runVisionOcr(
     let stdout = "";
     let stderr = "";
     let stderrBuffer = "";
+    let outputBytes = 0;
 
     const timeout = setTimeout(() => {
       proc.kill("SIGKILL");
@@ -251,6 +266,12 @@ export async function runVisionOcr(
     if (proc.stdout) {
       proc.stdout.setEncoding("utf8");
       proc.stdout.on("data", (chunk: string) => {
+        outputBytes += Buffer.byteLength(chunk);
+        if (outputBytes > OCR_MAX_OUTPUT_BYTES) {
+          proc.kill("SIGKILL");
+          reject(new Error("Vision OCR exceeded output limit"));
+          return;
+        }
         stdout += chunk;
       });
     }
@@ -258,6 +279,12 @@ export async function runVisionOcr(
     if (proc.stderr) {
       proc.stderr.setEncoding("utf8");
       proc.stderr.on("data", (chunk: string) => {
+        outputBytes += Buffer.byteLength(chunk);
+        if (outputBytes > OCR_MAX_OUTPUT_BYTES) {
+          proc.kill("SIGKILL");
+          reject(new Error("Vision OCR exceeded output limit"));
+          return;
+        }
         if (stderr.length < 8192) stderr += chunk;
         stderrBuffer += chunk;
         const lines = stderrBuffer.split(/\r?\n/);
@@ -305,6 +332,6 @@ export async function runOcrOnSlides(
       return { ...slide, ocrText: "", ocrConfidence: 0 };
     }
   });
-  const results = await runWithConcurrency(tasks, workers, onProgress ?? undefined);
+  const results = await runWithConcurrency(tasks, Math.min(4, workers), onProgress ?? undefined);
   return results.sort((a, b) => a.index - b.index);
 }

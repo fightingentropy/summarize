@@ -22,6 +22,8 @@ export type RunnerFlagResolution = {
   noMediaCacheFlag: boolean;
   extractMode: boolean;
   json: boolean;
+  includePrompt: boolean;
+  allowAgentTools: boolean;
   forceSummary: boolean;
   slidesDebug: boolean;
   streamMode: ReturnType<typeof parseStreamMode>;
@@ -83,6 +85,8 @@ export function resolveRunnerFlags({
   const noMediaCacheFlag = programOpts.mediaCache === false;
   const extractMode = Boolean(programOpts.extract);
   const json = Boolean(programOpts.json);
+  const includePrompt = Boolean(programOpts.includePrompt);
+  const allowAgentTools = Boolean(programOpts.allowAgentTools);
   const forceSummary = Boolean(programOpts.forceSummary);
   const slidesDebug = Boolean(programOpts.slidesDebug);
   const streamMode = parseStreamMode(String(programOpts.stream));
@@ -150,6 +154,8 @@ export function resolveRunnerFlags({
     noMediaCacheFlag,
     extractMode,
     json,
+    includePrompt,
+    allowAgentTools,
     forceSummary,
     slidesDebug,
     streamMode,

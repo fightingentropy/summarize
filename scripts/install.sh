@@ -67,13 +67,26 @@ compute_sha256() {
 }
 
 verify_checksum() {
-  local archive_path checksum_path expected actual
+  local archive_path checksum_path expected checksum_filename actual
   archive_path="$1"
   checksum_path="$2"
-  expected="$(awk 'NR==1 { print $1 }' "$checksum_path")"
-  [[ -n "$expected" ]] || fail "checksum file is empty: $checksum_path"
+  read -r expected checksum_filename < "$checksum_path" || fail "checksum file is empty: $checksum_path"
+  [[ "$expected" =~ ^[a-f0-9]{64}$ ]] || fail "checksum file has an invalid digest"
+  [[ "$checksum_filename" == "$(basename "$archive_path")" ]] \
+    || fail "checksum file names an unexpected archive: $checksum_filename"
   actual="$(compute_sha256 "$archive_path")"
   [[ "$expected" == "$actual" ]] || fail "checksum mismatch for $(basename "$archive_path")"
+}
+
+validate_archive() {
+  local archive_path entries verbose_entry
+  archive_path="$1"
+  entries="$(tar -tzf "$archive_path")" || fail "could not inspect release archive"
+  [[ "$entries" == "$ARCHIVE_BINARY" ]] \
+    || fail "unsafe release archive: expected exactly one root entry named ${ARCHIVE_BINARY}"
+  verbose_entry="$(tar -tvzf "$archive_path")" || fail "could not inspect release archive type"
+  [[ "${verbose_entry:0:1}" == "-" ]] \
+    || fail "unsafe release archive: ${ARCHIVE_BINARY} must be a regular file"
 }
 
 install_primary_binary() {
@@ -126,6 +139,7 @@ else
 fi
 
 TMP_DIR="$(mktemp -d)"
+chmod 700 "$TMP_DIR"
 ARCHIVE_PATH="${TMP_DIR}/${ARCHIVE_NAME}"
 CHECKSUM_PATH="${TMP_DIR}/${CHECKSUM_NAME}"
 EXTRACTED_BINARY="${TMP_DIR}/${ARCHIVE_BINARY}"
@@ -137,6 +151,7 @@ mkdir -p "$INSTALL_DIR"
 http_get "$ARCHIVE_URL" > "$ARCHIVE_PATH" || fail "failed to download ${ARCHIVE_URL}"
 http_get "$CHECKSUM_URL" > "$CHECKSUM_PATH" || fail "failed to download ${CHECKSUM_URL}"
 verify_checksum "$ARCHIVE_PATH" "$CHECKSUM_PATH"
+validate_archive "$ARCHIVE_PATH"
 
 tar -xzf "$ARCHIVE_PATH" -C "$TMP_DIR"
 install_primary_binary "$EXTRACTED_BINARY"

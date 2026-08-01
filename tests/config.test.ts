@@ -366,6 +366,7 @@ describe("config loading", () => {
           binary: "codex",
         },
         promptOverride: "Summarize this.",
+        // Legacy config must not provide the per-run agent-tools opt-in.
         allowTools: true,
         cwd: "/tmp",
         extraArgs: ["--bar"],
@@ -381,7 +382,6 @@ describe("config loading", () => {
         },
         codex: { binary: "codex" },
         promptOverride: "Summarize this.",
-        allowTools: true,
         cwd: "/tmp",
         extraArgs: ["--bar"],
       },

@@ -3,7 +3,16 @@ import { describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   buildAutoModelAttempts: vi.fn(),
   buildPathSummaryPrompt: vi.fn(() => "prompt"),
-  ensureCliAttachmentPath: vi.fn(async () => "/tmp/assets/file.png"),
+  cleanupCliAttachmentSandbox: vi.fn(async () => {}),
+  createCliAttachmentSandbox: vi.fn(async () => ({
+    rootDir: "/tmp/assets",
+    workDir: "/tmp/assets/work",
+    homeDir: "/tmp/assets/home",
+    tempDir: "/tmp/assets/tmp",
+    profilePath: null,
+    filePath: "/tmp/assets/work/file.png",
+    cleanup: mocks.cleanupCliAttachmentSandbox,
+  })),
   parseCliUserModelId: vi.fn((value: string) => ({ provider: "gemini", model: value })),
 }));
 
@@ -14,7 +23,7 @@ vi.mock("../src/prompts/index.js", () => ({
   buildPathSummaryPrompt: mocks.buildPathSummaryPrompt,
 }));
 vi.mock("../src/run/attachments.js", () => ({
-  ensureCliAttachmentPath: mocks.ensureCliAttachmentPath,
+  createCliAttachmentSandbox: mocks.createCliAttachmentSandbox,
 }));
 vi.mock("../src/run/env.js", () => ({
   parseCliUserModelId: mocks.parseCliUserModelId,
@@ -52,6 +61,7 @@ function createContext(overrides: Record<string, unknown> = {}) {
     promptOverride: null,
     lengthInstruction: null,
     languageInstruction: null,
+    allowAgentTools: true,
     ...overrides,
   };
 }
@@ -258,21 +268,20 @@ describe("asset summary attempts", () => {
       summaryLengthTarget: { maxCharacters: 900 },
     });
 
-    expect(mocks.ensureCliAttachmentPath).toHaveBeenCalled();
+    expect(mocks.createCliAttachmentSandbox).toHaveBeenCalled();
     expect(mocks.buildPathSummaryPrompt).toHaveBeenCalledWith(
       expect.objectContaining({
         kindLabel: "image",
-        filePath: "/tmp/assets/file.png",
+        filePath: "/tmp/assets/work/file.png",
         outputLanguage: { kind: "auto" },
       }),
     );
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       promptOverride: "prompt",
       allowTools: true,
-      cwd: "/tmp/assets",
       extraArgsByProvider: {
-        gemini: ["--include-directories", "/tmp/assets"],
-        codex: ["-i", "/tmp/assets/file.png"],
+        gemini: ["--include-directories", "/tmp/assets/work"],
+        codex: ["-i", "/tmp/assets/work/file.png"],
       },
     });
   });
@@ -296,7 +305,7 @@ describe("asset summary attempts", () => {
     });
 
     expect(result?.extraArgsByProvider).toEqual({
-      gemini: ["--include-directories", "/tmp/assets"],
+      gemini: ["--include-directories", "/tmp/assets/work"],
       codex: undefined,
     });
   });
