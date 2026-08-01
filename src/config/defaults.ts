@@ -80,11 +80,10 @@ export function buildDefaultSummarizeConfig(): Record<string, unknown> {
         model: "",
       },
       autoFallback: {
-        enabled: true,
+        enabled: false,
         onlyWhenNoApiKeys: true,
         order: [...DEFAULT_AUTO_CLI_ORDER],
       },
-      allowTools: false,
     },
     openai: {
       useChatCompletions: false,

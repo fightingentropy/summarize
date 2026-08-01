@@ -202,7 +202,8 @@ export function createDaemonUrlFlowContext(args: DaemonUrlFlowContextArgs): UrlF
     cliProviderArg: null,
   });
   const configForCliWithMagic = applyAutoCliFallbackOverrides(configForCli, resolvedOverrides);
-  const allowAutoCliFallback = resolvedOverrides.autoCliFallbackEnabled === true;
+  // Daemon requests contain untrusted page text and never opt in to local agent tools.
+  const allowAutoCliFallback = false;
 
   const {
     requestedModel,
@@ -253,6 +254,7 @@ export function createDaemonUrlFlowContext(args: DaemonUrlFlowContextArgs): UrlF
     plain: true,
     verbose: false,
     verboseColor: false,
+    allowAgentTools: false,
     openaiUseChatCompletions,
     cliConfigForRun: cliConfigForRun ?? null,
     cliAvailability,
@@ -328,6 +330,8 @@ export function createDaemonUrlFlowContext(args: DaemonUrlFlowContextArgs): UrlF
     isNamedModelSelection,
     maxOutputTokensArg,
     json: false,
+    includePrompt: false,
+    allowAgentTools: false,
     metricsEnabled: false,
     metricsDetailed: false,
     shouldComputeReport: false,
@@ -395,6 +399,8 @@ export function createDaemonUrlFlowContext(args: DaemonUrlFlowContextArgs): UrlF
       summaryCacheBypass: false,
       maxOutputTokensArg,
       json: false,
+      includePrompt: false,
+      allowAgentTools: false,
       extractMode: extractOnly ?? false,
       metricsEnabled: false,
       metricsDetailed: false,

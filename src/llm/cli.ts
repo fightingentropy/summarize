@@ -1,6 +1,5 @@
 import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import type { CliConfig, CliProvider } from "../config.js";
 import type { ExecFileFn } from "../markitdown.js";
@@ -11,6 +10,12 @@ import {
   parseJsonProviderOutput,
   type JsonCliProvider,
 } from "./cli-provider-output.js";
+import {
+  buildCliEnvironment,
+  createCliSandbox,
+  prepareSandboxedLaunch,
+  type CliSandbox,
+} from "./cli-sandbox.js";
 import type { LlmTokenUsage } from "./generate-text.js";
 
 const DEFAULT_BINARIES: Record<CliProvider, string> = {
@@ -63,7 +68,7 @@ type RunCliModelOptions = {
   env: Record<string, string | undefined>;
   execFileImpl?: ExecFileFn;
   config: CliConfig | null;
-  cwd?: string;
+  sandbox?: CliSandbox;
   extraArgs?: string[];
 };
 
@@ -127,19 +132,18 @@ function appendJsonProviderArgs({
     args.push("--print");
   }
   args.push("--output-format", "json");
-  if (provider === "agent" && !allowTools) {
-    args.push("--mode", "ask");
+  if (provider === "agent") {
+    args.push("--mode", "ask", "--sandbox", "enabled");
   }
   if (model && model.trim().length > 0) {
     args.push("--model", model.trim());
   }
   if (allowTools) {
     if (provider === "claude") {
-      args.push("--tools", "Read", "--dangerously-skip-permissions");
+      args.push("--tools", "Read");
     }
-    if (provider === "gemini") {
-      args.push("--yolo");
-    }
+  } else if (provider === "claude") {
+    args.push("--tools", "");
   }
   if (provider === "agent") {
     args.push(prompt);
@@ -152,6 +156,29 @@ function appendJsonProviderArgs({
   return prompt;
 }
 
+const SAFE_DIAGNOSTIC_ARGS = new Set(["--debug", "--verbose"]);
+
+function assertSafeConfiguredArgs(provider: CliProvider, args: string[]) {
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index] ?? "";
+    const normalized = arg.trim();
+    if (provider === "codex" && (normalized === "--config" || normalized === "-c")) {
+      const value = (args[index + 1] ?? "").trim();
+      if (!value.startsWith("service_tier=") && !value.startsWith("text.verbosity=")) {
+        throw new Error(
+          `Unsafe CLI provider config override is not allowed: ${value || "<empty>"}`,
+        );
+      }
+      index += 1;
+      continue;
+    }
+    if (SAFE_DIAGNOSTIC_ARGS.has(normalized)) continue;
+    throw new Error(
+      `Unsafe CLI provider extra argument is not allowed: ${normalized || "<empty>"}`,
+    );
+  }
+}
+
 export async function runCliModel({
   provider,
   prompt,
@@ -161,79 +188,97 @@ export async function runCliModel({
   env,
   execFileImpl,
   config,
-  cwd,
+  sandbox: providedSandbox,
   extraArgs,
 }: RunCliModelOptions): Promise<CliRunResult> {
   const execFileFn = execFileImpl ?? execFile;
   const binary = resolveCliBinary(provider, config, env);
   const args: string[] = [];
-
-  const effectiveEnv =
-    provider === "gemini" && !isNonEmptyString(env.GEMINI_CLI_NO_RELAUNCH)
-      ? { ...env, GEMINI_CLI_NO_RELAUNCH: "true" }
-      : env;
+  const ownsSandbox = !providedSandbox;
+  const sandbox = providedSandbox ?? (await createCliSandbox());
+  const effectiveEnv = buildCliEnvironment({ provider, sourceEnv: env, sandbox });
 
   const providerConfig = getCliProviderConfig(provider, config);
+  try {
+    if (providerConfig?.extraArgs?.length) {
+      assertSafeConfiguredArgs(provider, providerConfig.extraArgs);
+      args.push(...providerConfig.extraArgs);
+    }
+    if (extraArgs?.length) {
+      args.push(...extraArgs);
+    }
+    if (provider === "codex") {
+      const { model: codexModel, extraArgs: codexArgs } = resolveCodexModelAndArgs(model, args);
+      args.length = 0;
+      args.push(...codexArgs);
+      const outputPath = path.join(sandbox.workDir, "last-message.txt");
+      args.push(
+        "exec",
+        "--output-last-message",
+        outputPath,
+        "--skip-git-repo-check",
+        "--json",
+        "--sandbox",
+        "read-only",
+        "--ephemeral",
+        "--ignore-user-config",
+        "--ignore-rules",
+        "-C",
+        sandbox.workDir,
+      );
+      if (codexModel && codexModel.trim().length > 0) {
+        args.push("-m", codexModel.trim());
+      }
+      const hasVerbosityOverride = args.some((arg) => arg.includes("text.verbosity"));
+      if (!hasVerbosityOverride) {
+        args.push("-c", 'text.verbosity="medium"');
+      }
+      const launch = await prepareSandboxedLaunch({ binary, args, env, sandbox, timeoutMs });
+      const { stdout } = await execCliWithInput({
+        execFileImpl: execFileFn,
+        cmd: launch.cmd,
+        args: launch.args,
+        input: prompt,
+        timeoutMs,
+        env: effectiveEnv,
+        cwd: sandbox.workDir,
+      });
+      const { usage, costUsd } = parseCodexUsageFromJsonl(stdout);
+      let fileText = "";
+      try {
+        fileText = (await fs.readFile(outputPath, "utf8")).trim();
+      } catch {
+        fileText = "";
+      }
+      if (fileText) {
+        return { text: fileText, usage, costUsd };
+      }
+      const stdoutText = stdout.trim();
+      if (stdoutText) {
+        return { text: stdoutText, usage, costUsd };
+      }
+      throw new Error("CLI returned empty output");
+    }
 
-  if (providerConfig?.extraArgs?.length) {
-    args.push(...providerConfig.extraArgs);
-  }
-  if (extraArgs?.length) {
-    args.push(...extraArgs);
-  }
-  if (provider === "codex") {
-    const { model: codexModel, extraArgs: codexArgs } = resolveCodexModelAndArgs(model, args);
-    args.length = 0;
-    args.push(...codexArgs);
-    const outputDir = await fs.mkdtemp(path.join(tmpdir(), "summarize-codex-"));
-    const outputPath = path.join(outputDir, "last-message.txt");
-    args.push("exec", "--output-last-message", outputPath, "--skip-git-repo-check", "--json");
-    if (codexModel && codexModel.trim().length > 0) {
-      args.push("-m", codexModel.trim());
+    if (!isJsonCliProvider(provider)) {
+      throw new Error(`Unsupported CLI provider "${provider}".`);
     }
-    const hasVerbosityOverride = args.some((arg) => arg.includes("text.verbosity"));
-    if (!hasVerbosityOverride) {
-      args.push("-c", 'text.verbosity="medium"');
+    if (provider === "agent") {
+      args.push("--workspace", sandbox.workDir);
     }
+    const input = appendJsonProviderArgs({ provider, args, allowTools, model, prompt });
+    const launch = await prepareSandboxedLaunch({ binary, args, env, sandbox, timeoutMs });
     const { stdout } = await execCliWithInput({
       execFileImpl: execFileFn,
-      cmd: binary,
-      args,
-      input: prompt,
+      cmd: launch.cmd,
+      args: launch.args,
+      input,
       timeoutMs,
       env: effectiveEnv,
-      cwd,
+      cwd: sandbox.workDir,
     });
-    const { usage, costUsd } = parseCodexUsageFromJsonl(stdout);
-    let fileText = "";
-    try {
-      fileText = (await fs.readFile(outputPath, "utf8")).trim();
-    } catch {
-      fileText = "";
-    }
-    if (fileText) {
-      return { text: fileText, usage, costUsd };
-    }
-    const stdoutText = stdout.trim();
-    if (stdoutText) {
-      return { text: stdoutText, usage, costUsd };
-    }
-    throw new Error("CLI returned empty output");
+    return parseJsonProviderOutput({ provider, stdout });
+  } finally {
+    if (ownsSandbox) await sandbox.cleanup();
   }
-
-  if (!isJsonCliProvider(provider)) {
-    throw new Error(`Unsupported CLI provider "${provider}".`);
-  }
-  const input = appendJsonProviderArgs({ provider, args, allowTools, model, prompt });
-
-  const { stdout } = await execCliWithInput({
-    execFileImpl: execFileFn,
-    cmd: binary,
-    args,
-    input,
-    timeoutMs,
-    env: effectiveEnv,
-    cwd,
-  });
-  return parseJsonProviderOutput({ provider, stdout });
 }

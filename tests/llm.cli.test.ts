@@ -21,7 +21,7 @@ const makeStub = (handler: (args: string[]) => { stdout?: string; stderr?: strin
 };
 
 describe("runCliModel", () => {
-  it("handles Claude JSON output and tool flags", async () => {
+  it("allows only Claude Read tools without bypassing permissions", async () => {
     const seen: string[][] = [];
     const execFileImpl = makeStub((args) => {
       seen.push(args);
@@ -56,10 +56,11 @@ describe("runCliModel", () => {
       totalTokens: 10,
     });
     expect(seen[0]?.includes("--tools")).toBe(true);
-    expect(seen[0]?.includes("--dangerously-skip-permissions")).toBe(true);
+    expect(seen[0]).toContain("Read");
+    expect(seen[0]?.includes("--dangerously-skip-permissions")).toBe(false);
   });
 
-  it("handles Gemini JSON output and yolo flag", async () => {
+  it("handles Gemini JSON output without yolo mode", async () => {
     const seen: string[][] = [];
     const execFileImpl = makeStub((args) => {
       seen.push(args);
@@ -92,7 +93,7 @@ describe("runCliModel", () => {
       completionTokens: 7,
       totalTokens: 12,
     });
-    expect(seen[0]?.includes("--yolo")).toBe(true);
+    expect(seen[0]?.includes("--yolo")).toBe(false);
     expect(seen[0]?.includes("--prompt")).toBe(true);
     expect(seen[0]?.includes("Test")).toBe(true);
   });
@@ -139,33 +140,40 @@ describe("runCliModel", () => {
       timeoutMs: 1000,
       env: {},
       execFileImpl,
-      config: { claude: { extraArgs: ["--foo"] } },
+      config: { claude: { extraArgs: ["--verbose"] } },
       extraArgs: ["--bar"],
     });
     expect(result.text).toBe("ok");
-    expect(seen[0]).toContain("--foo");
+    expect(seen[0]).toContain("--verbose");
     expect(seen[0]).toContain("--bar");
   });
 
-  it("adds Agent provider extra args", async () => {
-    const seen: string[][] = [];
-    const execFileImpl = makeStub((args) => {
-      seen.push(args);
-      return { stdout: JSON.stringify({ result: "ok" }) };
-    });
-    const result = await runCliModel({
-      provider: "agent",
-      prompt: "Test",
-      model: "gpt-5.2",
-      allowTools: false,
-      timeoutMs: 1000,
-      env: {},
-      execFileImpl,
-      config: { agent: { extraArgs: ["--header", "x-test: 1"] } },
-    });
-    expect(result.text).toBe("ok");
-    expect(seen[0]).toContain("--header");
-    expect(seen[0]).toContain("x-test: 1");
+  it("rejects configured arguments that can alter the provider security policy", async () => {
+    await expect(
+      runCliModel({
+        provider: "claude",
+        prompt: "Test",
+        model: "sonnet",
+        allowTools: false,
+        timeoutMs: 1000,
+        env: {},
+        execFileImpl: makeStub(() => ({ stdout: JSON.stringify({ result: "ok" }) })),
+        config: { claude: { extraArgs: ["--tools", "Bash"] } },
+      }),
+    ).rejects.toThrow(/Unsafe CLI provider extra argument/i);
+
+    await expect(
+      runCliModel({
+        provider: "gemini",
+        prompt: "Test",
+        model: "flash",
+        allowTools: false,
+        timeoutMs: 1000,
+        env: {},
+        execFileImpl: makeStub(() => ({ stdout: JSON.stringify({ response: "ok" }) })),
+        config: { gemini: { extraArgs: ["--yolo"] } },
+      }),
+    ).rejects.toThrow(/Unsafe CLI provider extra argument/i);
   });
 
   it("handles Agent CLI JSON output in ask mode", async () => {

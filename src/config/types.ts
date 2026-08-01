@@ -22,7 +22,6 @@ export type CliConfig = {
   autoFallback?: CliAutoFallbackConfig;
   magicAuto?: CliAutoFallbackConfig;
   promptOverride?: string;
-  allowTools?: boolean;
   cwd?: string;
   extraArgs?: string[];
 };

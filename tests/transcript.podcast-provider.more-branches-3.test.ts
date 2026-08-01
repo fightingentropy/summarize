@@ -8,7 +8,10 @@ async function importPodcastProviderWithFfmpeg(plan: SpawnPlan) {
   vi.resetModules();
   vi.doMock("node:child_process", () => ({
     spawn: (_cmd: string, args: string[]) => {
-      if (_cmd !== "ffmpeg" || !args.includes("-version")) {
+      const isFfmpeg =
+        _cmd === "ffmpeg" ||
+        (args.includes("summarize-subprocess-limit") && args.includes("ffmpeg"));
+      if (!isFfmpeg || !args.includes("-version")) {
         throw new Error(`Unexpected spawn: ${_cmd} ${args.join(" ")}`);
       }
       const handlers = new Map<string, (value?: unknown) => void>();

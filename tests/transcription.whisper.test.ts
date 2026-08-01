@@ -5,6 +5,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
+const isCommand = (command: string, args: string[], expected: string) =>
+  command === expected || (args.includes("summarize-subprocess-limit") && args.includes(expected));
+
 const falMocks = vi.hoisted(() => ({
   createFalClient: vi.fn(),
 }));
@@ -48,7 +51,7 @@ describe("transcription/whisper", () => {
     resetModules();
     vi.doMock("node:child_process", () => ({
       spawn: (_cmd: string, args: string[]) => {
-        if (_cmd !== "ffmpeg") throw new Error(`Unexpected spawn: ${_cmd}`);
+        if (!isCommand(_cmd, args, "ffmpeg")) throw new Error(`Unexpected spawn: ${_cmd}`);
 
         const stderr = new EventEmitter() as EventEmitter & {
           setEncoding?: (encoding: string) => void;
@@ -571,7 +574,7 @@ describe("transcription/whisper", () => {
 
     vi.doMock("node:child_process", () => ({
       spawn: (_cmd: string, args: string[]) => {
-        if (_cmd !== "ffmpeg") throw new Error(`Unexpected spawn: ${_cmd}`);
+        if (!isCommand(_cmd, args, "ffmpeg")) throw new Error(`Unexpected spawn: ${_cmd}`);
 
         const stderr = new EventEmitter() as EventEmitter & {
           setEncoding?: (encoding: string) => void;
@@ -637,7 +640,7 @@ describe("transcription/whisper", () => {
 
       vi.doMock("node:child_process", () => ({
         spawn: (_cmd: string, args: string[]) => {
-          if (_cmd !== "ffmpeg") throw new Error(`Unexpected spawn: ${_cmd}`);
+          if (!isCommand(_cmd, args, "ffmpeg")) throw new Error(`Unexpected spawn: ${_cmd}`);
           const stderr = new EventEmitter() as EventEmitter & {
             setEncoding?: (encoding: string) => void;
           };

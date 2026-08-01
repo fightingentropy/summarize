@@ -60,6 +60,7 @@ export type SummaryEngineDeps = {
   plain: boolean;
   verbose: boolean;
   verboseColor: boolean;
+  allowAgentTools?: boolean;
   openaiUseChatCompletions: boolean;
   openaiRequestOptions?: ModelRequestOptions;
   openaiRequestOptionsOverride?: ModelRequestOptions;
@@ -201,7 +202,7 @@ export function createSummaryEngine(deps: SummaryEngineDeps) {
     cli?: {
       promptOverride?: string;
       allowTools?: boolean;
-      cwd?: string;
+      sandbox?: Parameters<typeof runCliModel>[0]["sandbox"];
       extraArgsByProvider?: Partial<Record<CliProvider, string[]>>;
     } | null;
     streamHandler?: SummaryStreamHandler | null;
@@ -214,6 +215,11 @@ export function createSummaryEngine(deps: SummaryEngineDeps) {
     onModelChosen?.(attempt.userModelId);
 
     if (attempt.transport === "cli") {
+      if (!deps.allowAgentTools) {
+        throw new Error(
+          "CLI providers are agentic and are disabled for untrusted input. Re-run with --allow-agent-tools to opt in explicitly.",
+        );
+      }
       const hasAttachments = (prompt.attachments?.length ?? 0) > 0;
       const cliPrompt = hasAttachments ? (cli?.promptOverride ?? null) : prompt.userText;
       if (!cliPrompt) {
@@ -236,7 +242,7 @@ export function createSummaryEngine(deps: SummaryEngineDeps) {
         env: deps.env,
         execFileImpl: deps.execFileImpl,
         config: deps.cliConfigForRun ?? null,
-        cwd: cli?.cwd,
+        sandbox: cli?.sandbox,
         extraArgs: cli?.extraArgsByProvider?.[attempt.cliProvider],
       });
       const summary = result.text.trim();

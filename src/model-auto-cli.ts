@@ -24,25 +24,10 @@ export function resolveCliAutoFallbackConfig(
   const order =
     Array.isArray(raw?.order) && raw.order.length > 0 ? raw.order : DEFAULT_AUTO_CLI_ORDER;
   return {
-    enabled: typeof raw?.enabled === "boolean" ? raw.enabled : true,
+    enabled: typeof raw?.enabled === "boolean" ? raw.enabled : false,
     onlyWhenNoApiKeys: typeof raw?.onlyWhenNoApiKeys === "boolean" ? raw.onlyWhenNoApiKeys : true,
     order: dedupeCliProviderOrder(order),
   };
-}
-
-function hasAnyApiKeysConfigured(env: Record<string, string | undefined>): boolean {
-  const has = (value: string | undefined) => typeof value === "string" && value.trim().length > 0;
-  return Boolean(
-    has(env.OPENAI_API_KEY) ||
-    has(env.GEMINI_API_KEY) ||
-    has(env.GOOGLE_GENERATIVE_AI_API_KEY) ||
-    has(env.GOOGLE_API_KEY) ||
-    has(env.ANTHROPIC_API_KEY) ||
-    has(env.XAI_API_KEY) ||
-    has(env.OPENROUTER_API_KEY) ||
-    has(env.Z_AI_API_KEY) ||
-    has(env.ZAI_API_KEY),
-  );
 }
 
 function prioritizeCliProvider(
@@ -76,18 +61,17 @@ export function prependCliCandidates({
   allowAutoCliFallback: boolean;
   lastSuccessfulCliProvider: CliProvider | null;
 }): string[] {
+  // A config file must never silently turn untrusted content into instructions for a
+  // local coding agent. The caller sets this only for an explicit per-run opt-in.
+  if (!allowAutoCliFallback) return candidates;
+  void env;
+  void isImplicitAutoSelection;
   const cli = config?.cli;
   const autoFallback = resolveCliAutoFallbackConfig(config);
   const hasExplicitEnabledList = Array.isArray(cli?.enabled);
-  const enabledOrder: CliProvider[] = (() => {
-    if (hasExplicitEnabledList) return cli?.enabled ?? [];
-    const shouldUseAutoFallback =
-      autoFallback.enabled &&
-      (isImplicitAutoSelection || allowAutoCliFallback) &&
-      (!autoFallback.onlyWhenNoApiKeys || !hasAnyApiKeysConfigured(env));
-    if (!shouldUseAutoFallback) return [];
-    return autoFallback.order;
-  })();
+  const enabledOrder: CliProvider[] = hasExplicitEnabledList
+    ? (cli?.enabled ?? [])
+    : autoFallback.order;
   if (enabledOrder.length === 0) return candidates;
 
   const providerOrder = prioritizeCliProvider(enabledOrder, lastSuccessfulCliProvider);

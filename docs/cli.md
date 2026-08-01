@@ -11,7 +11,7 @@ read_when:
 
 # CLI models
 
-Summarize can use installed CLIs (Claude, Codex, Gemini, Cursor Agent) as local model backends.
+Summarize can use installed coding CLIs (Claude, Codex, Gemini, Cursor Agent) as agentic model backends. They are an explicit, per-run opt-in and are never selected by normal API auto mode or by the daemon.
 
 ## Model ids
 
@@ -20,23 +20,19 @@ Summarize can use installed CLIs (Claude, Codex, Gemini, Cursor Agent) as local 
 - `cli/gemini/<model>` (e.g. `cli/gemini/gemini-3-flash`)
 - `cli/agent/<model>` (e.g. `cli/agent/gpt-5.2`)
 
-Use `--cli [provider]` (case-insensitive) for the provider default, or `--model cli/<provider>/<model>` to pin a model.
-If `--cli` is provided without a provider, auto selection is used with CLI enabled.
+Use `--allow-agent-tools --cli [provider]` (case-insensitive) for the provider default, or `--allow-agent-tools --model cli/<provider>/<model>` to pin a model. Both forms require `--allow-agent-tools`; without it the run fails closed.
+
+If `--cli` is provided without a provider, only the configured/available CLI order is tried. This is still an explicit CLI request and still requires `--allow-agent-tools`.
 
 For Codex specifically, `summarize --cli codex` and `--model cli/codex` defer to your Codex CLI's own configured default model instead of pinning one in summarize.
 
-## Auto mode
+## Selection boundary
 
-Auto mode can prepend CLI attempts in two ways:
-
-- `cli.enabled` set in config:
-  - Auto always uses this list order.
-  - Also acts as an allowlist for explicit `--cli` / `--model cli/...`.
-- Auto CLI fallback (`cli.autoFallback`, default enabled):
-  - Applies only to **implicit** auto (when no model is set via flag/env/config).
-  - Default behavior: only when no API key is configured.
-  - Default order: `codex, gemini, claude, agent`.
-  - Remembers + prioritizes the last successful CLI provider (`~/.summarize/cli-state.json`).
+- Normal `--model auto` uses API-style, non-agentic providers only.
+- `cli.enabled` is an allowlist/order for an explicitly requested CLI run; setting it does not activate CLI fallback.
+- Legacy `cli.autoFallback` is parsed for compatibility but cannot activate a CLI backend by itself and defaults to disabled.
+- The daemon always disables CLI providers, even if its inherited configuration contains legacy CLI fallback settings.
+- A successful explicitly requested CLI provider can still be remembered in `~/.summarize/cli-state.json` to order a later explicit `--cli` run.
 
 Gemini CLI performance: summarize sets `GEMINI_CLI_NO_RELAUNCH=true` for Gemini CLI runs to avoid a costly self-relaunch (can be overridden by setting it yourself).
 
@@ -48,29 +44,19 @@ Set explicit CLI allowlist:
 }
 ```
 
-Configure auto CLI fallback:
+Keep the legacy fallback setting disabled:
 
 ```json
 {
   "cli": {
     "autoFallback": {
-      "enabled": true,
+      "enabled": false,
       "onlyWhenNoApiKeys": true,
       "order": ["codex", "gemini", "claude", "agent"]
     }
   }
 }
 ```
-
-Disable auto CLI fallback:
-
-```json
-{
-  "cli": { "autoFallback": { "enabled": false } }
-}
-```
-
-Note: `--model auto` (explicit) does not trigger auto CLI fallback unless `cli.enabled` is set.
 
 ## CLI discovery
 
@@ -82,13 +68,18 @@ Binary lookup:
 
 ## Attachments (images/files)
 
-When a CLI attempt is used for an image or non-text file, Summarize switches to a
-path-based prompt and enables the required tool flags:
+Summarize extracts documents and media itself and passes plain text whenever possible. If an explicitly opted-in image/file run truly needs a path, Summarize:
 
-- Claude: `--tools Read --dangerously-skip-permissions`
-- Gemini: `--yolo` and `--include-directories <dir>`
-- Codex: `codex exec --output-last-message ...` and `-i <image>` for images
-- Agent: uses built-in file tools in `agent --print` mode (no extra flags)
+- creates a fresh `0700` temporary root with isolated work, home, and temp directories;
+- copies only the required input into the work directory with mode `0600`;
+- launches from that directory with an empty `HOME` and a provider-specific environment allowlist;
+- disables Claude tools unless the staged file needs `Read`, uses Codex read-only/ephemeral mode, and forces Cursor Agent ask/sandbox mode;
+- never adds `--dangerously-skip-permissions` or `--yolo`; and
+- removes the workspace after the provider exits.
+
+On macOS, a Seatbelt profile also denies reads and writes outside the isolated workspace except for the system/runtime paths needed to launch the provider. Network access remains available because provider CLIs must reach their APIs.
+
+On Linux, `bubblewrap` (`bwrap`) is required and builds an equivalent mount/user namespace. Other operating systems fail closed rather than launching an unsandboxed agent. Unix launches also apply CPU, memory (resident-memory watchdog on macOS; virtual-address-space limit on Linux), file-size, process, and open-file limits in addition to the elapsed-time and output caps.
 
 ## Config
 
@@ -97,7 +88,7 @@ path-based prompt and enables the required tool flags:
   "cli": {
     "enabled": ["claude", "gemini", "codex", "agent"],
     "autoFallback": {
-      "enabled": true,
+      "enabled": false,
       "onlyWhenNoApiKeys": true,
       "order": ["claude", "gemini", "codex", "agent"]
     },
@@ -119,9 +110,10 @@ path-based prompt and enables the required tool flags:
 Notes:
 
 - CLI output is treated as text only (no token accounting).
-- If a CLI call fails, auto mode falls back to the next candidate.
-- Cursor Agent CLI uses the `agent` binary and relies on Cursor CLI auth (login or `CURSOR_API_KEY`).
+- If an explicitly requested `--cli` run fails, it may try the next explicitly allowed CLI candidate.
+- The isolated empty `HOME` intentionally hides normal interactive login files. Supply the selected provider's API key in the environment (for Agent, `CURSOR_API_KEY`). Other provider keys and unrelated credentials are not inherited.
 - Gemini CLI is invoked in headless mode with `--prompt` for compatibility with current Gemini CLI releases.
+- Provider output is capped and the process is killed when the configured elapsed timeout expires.
 
 ## Quick smoke test (all CLI providers)
 
@@ -130,13 +122,13 @@ Use a tiny local text file and run each provider with a longer timeout (Gemini c
 ```bash
 printf "Summarize CLI smoke input.\nOne short paragraph. Reply can be brief.\n" >/tmp/summarize-cli-smoke.txt
 
-summarize --cli codex --plain --timeout 2m /tmp/summarize-cli-smoke.txt
-summarize --cli claude --plain --timeout 2m /tmp/summarize-cli-smoke.txt
-summarize --cli gemini --plain --timeout 2m /tmp/summarize-cli-smoke.txt
-summarize --cli agent --plain --timeout 2m /tmp/summarize-cli-smoke.txt
+summarize --allow-agent-tools --cli codex --plain --timeout 2m /tmp/summarize-cli-smoke.txt
+summarize --allow-agent-tools --cli claude --plain --timeout 2m /tmp/summarize-cli-smoke.txt
+summarize --allow-agent-tools --cli gemini --plain --timeout 2m /tmp/summarize-cli-smoke.txt
+summarize --allow-agent-tools --cli agent --plain --timeout 2m /tmp/summarize-cli-smoke.txt
 ```
 
-If Agent fails with auth, run `agent login` (interactive) or set `CURSOR_API_KEY`.
+Interactive login state is deliberately unavailable inside the isolated home; use the provider's environment API key.
 
 ## Generate free preset (OpenRouter)
 

@@ -1,8 +1,7 @@
-import path from "node:path";
 import type { CliProvider } from "../../../config.js";
 import { buildAutoModelAttempts } from "../../../model-auto.js";
 import { buildPathSummaryPrompt } from "../../../prompts/index.js";
-import { ensureCliAttachmentPath } from "../../attachments.js";
+import { createCliAttachmentSandbox } from "../../attachments.js";
 import { parseCliUserModelId } from "../../env.js";
 import type { ModelAttempt } from "../../types.js";
 import type { AssetSummaryContext, SummarizeAssetArgs } from "./summary.js";
@@ -110,15 +109,13 @@ export async function buildAssetCliContext({
 }) {
   if (!attempts.some((attempt) => attempt.transport === "cli")) return null;
   if (attachmentsCount === 0) return null;
+  if (!ctx.allowAgentTools) return null;
   const needsPathPrompt = args.attachment.kind === "image" || args.attachment.kind === "file";
   if (!needsPathPrompt) return null;
 
-  const filePath = await ensureCliAttachmentPath({
-    sourceKind: args.sourceKind,
-    sourceLabel: args.sourceLabel,
-    attachment: args.attachment,
-  });
-  const dir = path.dirname(filePath);
+  const sandbox = await createCliAttachmentSandbox({ attachment: args.attachment });
+  const filePath = sandbox.filePath;
+  const dir = sandbox.workDir;
   const extraArgsByProvider: Partial<Record<CliProvider, string[]>> = {
     gemini: ["--include-directories", dir],
     codex: args.attachment.kind === "image" ? ["-i", filePath] : undefined,
@@ -137,7 +134,8 @@ export async function buildAssetCliContext({
       languageInstruction: ctx.languageInstruction ?? null,
     }),
     allowTools: true,
-    cwd: dir,
+    sandbox,
     extraArgsByProvider,
+    cleanup: sandbox.cleanup,
   };
 }

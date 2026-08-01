@@ -4,6 +4,9 @@
 
 ### Fixes
 
+- CLI security: require an explicit `--allow-agent-tools` opt-in for agentic CLI providers, remove implicit no-key CLI fallback, isolate provider runs and staged attachments in private temporary sandboxes, and enforce bounded subprocess resources/output.
+- JSON output: omit the generated prompt by default; add the JSON-only `--include-prompt` opt-in for callers that intentionally need it.
+- Release integrity: restore CI checks for source and compiled binaries, validate archive shape/checksums before install or publish, and generate GitHub artifact attestations in the release workflow.
 - Summaries: inputs larger than the model's context window are now truncated to fit (head + tail, keeping the document's opening and its conclusion) instead of aborting the run with an `Input token count exceeds model input limit` error. A degraded summary of a truncated document beats no summary. The same head+tail strategy now backs `--max-extract-characters` so the closing section survives an explicit content budget.
 
 ## 0.14.1 - 2026-04-26

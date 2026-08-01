@@ -41,7 +41,14 @@ describe("--model cli/... progress", () => {
     stderr.columns = 120;
 
     await runCli(
-      ["--model", "cli/gemini/gemini-3-flash-preview", "--timeout", "2s", "https://example.com"],
+      [
+        "--model",
+        "cli/gemini/gemini-3-flash-preview",
+        "--allow-agent-tools",
+        "--timeout",
+        "2s",
+        "https://example.com",
+      ],
       {
         env: { PATH: binDir, TERM: "xterm-256color" },
         fetch: fetchMock as unknown as typeof fetch,
@@ -87,13 +94,16 @@ describe("--model cli/... progress", () => {
     stderr.isTTY = true;
     stderr.columns = 120;
 
-    await runCli(["--cli", "gemini", "--timeout", "2s", "https://example.com"], {
-      env: { PATH: binDir, TERM: "xterm-256color" },
-      fetch: fetchMock as unknown as typeof fetch,
-      execFile: execFileImpl,
-      stdout,
-      stderr,
-    });
+    await runCli(
+      ["--cli", "gemini", "--allow-agent-tools", "--timeout", "2s", "https://example.com"],
+      {
+        env: { PATH: binDir, TERM: "xterm-256color" },
+        fetch: fetchMock as unknown as typeof fetch,
+        execFile: execFileImpl,
+        stdout,
+        stderr,
+      },
+    );
 
     expect(stdoutText).toContain("ok");
   });
@@ -131,13 +141,16 @@ describe("--model cli/... progress", () => {
     stderr.isTTY = true;
     stderr.columns = 120;
 
-    await runCli(["--cli", "Claude", "--timeout", "2s", "https://example.com"], {
-      env: { PATH: binDir, TERM: "xterm-256color" },
-      fetch: fetchMock as unknown as typeof fetch,
-      execFile: execFileImpl,
-      stdout,
-      stderr,
-    });
+    await runCli(
+      ["--cli", "Claude", "--allow-agent-tools", "--timeout", "2s", "https://example.com"],
+      {
+        env: { PATH: binDir, TERM: "xterm-256color" },
+        fetch: fetchMock as unknown as typeof fetch,
+        execFile: execFileImpl,
+        stdout,
+        stderr,
+      },
+    );
 
     expect(stdoutText).toContain("ok");
   });
@@ -175,13 +188,24 @@ describe("--model cli/... progress", () => {
     stderr.isTTY = true;
     stderr.columns = 120;
 
-    await runCli(["--cli", "https://example.com", "--max-output-tokens", "50", "--timeout", "2s"], {
-      env: { PATH: binDir, TERM: "xterm-256color" },
-      fetch: fetchMock as unknown as typeof fetch,
-      execFile: execFileImpl,
-      stdout,
-      stderr,
-    });
+    await runCli(
+      [
+        "--cli",
+        "--allow-agent-tools",
+        "https://example.com",
+        "--max-output-tokens",
+        "50",
+        "--timeout",
+        "2s",
+      ],
+      {
+        env: { PATH: binDir, TERM: "xterm-256color" },
+        fetch: fetchMock as unknown as typeof fetch,
+        execFile: execFileImpl,
+        stdout,
+        stderr,
+      },
+    );
 
     expect(stdoutText).toContain("ok");
   });

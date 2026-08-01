@@ -176,6 +176,8 @@ export async function runCli(
     noMediaCacheFlag,
     extractMode,
     json,
+    includePrompt,
+    allowAgentTools,
     forceSummary,
     slidesDebug,
     streamMode,
@@ -207,6 +209,9 @@ export async function runCli(
 
   if (extractMode && lengthExplicitlySet && !json && isRichTty(stderr)) {
     stderr.write("Warning: --length is ignored with --extract (no summary is generated).\n");
+  }
+  if (includePrompt && !json) {
+    throw new Error("--include-prompt requires --json.");
   }
   const modelArg =
     typeof program.opts().model === "string" ? (program.opts().model as string) : null;
@@ -428,6 +433,7 @@ export async function runCli(
       plain,
       verbose,
       verboseColor,
+      allowAgentTools,
       openaiUseChatCompletions,
       openaiRequestOptions,
       openaiRequestOptionsOverride,
@@ -503,6 +509,8 @@ export async function runCli(
         summaryCacheBypass: noCacheFlag,
         maxOutputTokensArg,
         json,
+        includePrompt,
+        allowAgentTools,
         extractMode,
         metricsEnabled,
         metricsDetailed,
@@ -527,7 +535,7 @@ export async function runCli(
         fixedModelSpec,
         isFallbackModel,
         isImplicitAutoSelection,
-        allowAutoCliFallback: false,
+        allowAutoCliFallback: cliFlagPresent && cliProviderArg === null,
         isNamedModelSelection,
         wantsFreeNamedModel,
         desiredOutputTokens,

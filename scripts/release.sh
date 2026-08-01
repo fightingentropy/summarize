@@ -34,37 +34,6 @@ tag_name() {
   printf 'v%s\n' "$(package_version)"
 }
 
-asset_paths() {
-  local version
-  version="$(package_version)"
-  printf '%s\n' \
-    "dist-bun/summarize-macos-arm64-v${version}.tar.gz" \
-    "dist-bun/summarize-macos-arm64-v${version}.tar.gz.sha256" \
-    "dist-bun/summarize-linux-x64-v${version}.tar.gz" \
-    "dist-bun/summarize-linux-x64-v${version}.tar.gz.sha256"
-}
-
-require_release_assets() {
-  local asset
-  while IFS= read -r asset; do
-    [ -f "$asset" ] || fail "Missing release asset: $asset"
-  done < <(asset_paths)
-}
-
-release_notes_file() {
-  local version notes
-  version="$(package_version)"
-  notes="$(mktemp)"
-  awk -v start="$version" '
-    BEGIN { p=0 }
-    $0 ~ ("^## " start " ") { p=1; next }
-    p && /^## / { exit }
-    p { print }
-  ' CHANGELOG.md > "$notes"
-  [ -s "$notes" ] || fail "Could not extract release notes for ${version} from CHANGELOG.md"
-  printf '%s\n' "$notes"
-}
-
 phase_gates() {
   banner "Gates"
   require_clean_git
@@ -75,6 +44,7 @@ phase_build() {
   banner "Build"
   run bun run build
   run bun run build:bun:test
+  run bun run release:artifacts:check
 }
 
 phase_tag() {
@@ -91,24 +61,14 @@ phase_tag() {
 }
 
 phase_release() {
-  local tag notes version
-  banner "GitHub release"
+  local tag
+  banner "GitHub release workflow"
   require_clean_git
-  require_release_assets
   tag="$(tag_name)"
-  version="$(package_version)"
-  if gh release view "${tag}" >/dev/null 2>&1; then
-    fail "GitHub release already exists: ${tag}"
-  fi
-  notes="$(release_notes_file)"
-  run gh release create "${tag}" \
-    "dist-bun/summarize-macos-arm64-v${version}.tar.gz" \
-    "dist-bun/summarize-macos-arm64-v${version}.tar.gz.sha256" \
-    "dist-bun/summarize-linux-x64-v${version}.tar.gz" \
-    "dist-bun/summarize-linux-x64-v${version}.tar.gz.sha256" \
-    --title "${tag}" \
-    --notes-file "${notes}"
-  rm -f "${notes}"
+  git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null \
+    || fail "Remote tag does not exist: ${tag}. Run the tag phase first."
+  run gh workflow run release.yml --ref "${tag}" -f "tag=${tag}"
+  echo "Release artifacts will be rebuilt, validated, attested, and published by GitHub Actions."
 }
 
 case "$PHASE" in
@@ -120,7 +80,8 @@ case "$PHASE" in
     phase_gates
     phase_build
     phase_tag
-    phase_release
+    banner "GitHub release workflow"
+    echo "The ${tag:-$(tag_name)} tag push triggered .github/workflows/release.yml."
     ;;
   *)
     echo "Usage: scripts/release.sh [phase]"
@@ -129,8 +90,8 @@ case "$PHASE" in
     echo "  gates     bun run check"
     echo "  build     bun run build + bun run build:bun:test"
     echo "  tag       push HEAD + create/push vX.Y.Z tag"
-    echo "  release   gh release create with macOS arm64 + Linux x64 Bun tarballs and sha256 assets"
-    echo "  all       gates + build + tag + release"
+    echo "  release   dispatch the attested GitHub Actions release workflow for the existing tag"
+    echo "  all       gates + build + tag (the tag push triggers the attested release workflow)"
     exit 2
     ;;
 esac

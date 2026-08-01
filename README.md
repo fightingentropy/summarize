@@ -21,7 +21,7 @@ Summarize is a Bun-native CLI app for extracting content and generating summarie
 
 ## Efficiency Notes
 
-- CLI-only repo: the browser extension, its tests, and GitHub-only CI wiring were removed to shrink the surface area and dependency graph.
+- CLI-only repo: the browser extension and its tests were removed to shrink the surface area and dependency graph; a minimal GitHub Actions gate validates the CLI and release artifacts.
 - Large-page extraction: repeated HTML parsing and hidden-content cleanup were collapsed into shared passes, and obvious non-media pages now skip unnecessary transcript probing.
 - YouTube/media: direct media URLs short-circuit earlier, duplicate player/duration requests were removed, and the default YouTube path now prefers a small embed/bootstrap flow before falling back to the watch page.
 - Extraction hot paths are guarded locally with `bun run perf:guard`, and the normal gate runs it via `bun run check`.
@@ -46,10 +46,16 @@ By default that installs `summarize` into `~/.local/bin`.
 Useful overrides:
 
 - `SUMMARIZE_INSTALL_DIR=/usr/local/bin`
-- `SUMMARIZE_VERSION=v0.12.1`
+- `SUMMARIZE_VERSION=v0.14.1` (kept in sync with `package.json` by `bun run release:version:sync`)
 - `SUMMARIZE_GITHUB_REPO=fightingentropy/summarize`
 
 Current release installer targets: macOS Apple Silicon and Linux x64.
+
+The installer checks the SHA-256 record and rejects archives containing anything other than one regular root file named `summarize` before extraction. Tagged releases are rebuilt and receive GitHub artifact provenance in CI. To independently verify a manually downloaded archive:
+
+```bash
+gh attestation verify summarize-<target>-v<version>.tar.gz --repo fightingentropy/summarize
+```
 
 ### Optional local dependencies
 
@@ -208,7 +214,8 @@ Use `summarize --help` or `summarize help` for the full help text.
 - `--length short|medium|long|xl|xxl|s|m|l|<chars>`
 - `--language, --lang <language>`: output language (`auto` = match source)
 - `--max-output-tokens <count>`: hard cap for LLM output tokens
-- `--cli [provider]`: use a CLI provider (`--model cli/<provider>`). Supports `claude`, `gemini`, `codex`, `agent`. If omitted, uses auto selection with CLI enabled.
+- `--cli [provider]`: explicitly select an agentic CLI provider (`--model cli/<provider>`). Supports `claude`, `gemini`, `codex`, `agent`. `--cli` without a provider tries the configured CLI order.
+- `--allow-agent-tools`: required per-run opt-in for every CLI provider. Daemon requests never enable agentic backends.
 - `--stream auto|on|off`: stream LLM output (`auto` = TTY only; disabled in `--json` mode)
 - `--plain`: keep raw output (no ANSI/OSC Markdown rendering)
 - `--no-color`: disable ANSI colors
@@ -225,7 +232,8 @@ Use `summarize --help` or `summarize help` for the full help text.
 - `--slides-scene-threshold <value>`: scene detection threshold (0.1-1.0)
 - `--slides-max <count>`: maximum slides to extract (default `6`)
 - `--slides-min-duration <seconds>`: minimum seconds between slides
-- `--json`: machine-readable output with diagnostics, prompt, `metrics`, and optional summary
+- `--json`: machine-readable output with diagnostics, `metrics`, and optional summary; the prompt is omitted by default
+- `--include-prompt`: include the complete prompt in `--json` output (may expose private source content in logs)
 - `--verbose`: debug/diagnostics on stderr
 - `--metrics off|on|detailed`: metrics output (default `on`)
 
@@ -240,19 +248,22 @@ Summarize can use common coding CLIs as local model backends:
 
 Requirements:
 
+- Explicit `--allow-agent-tools` on every invocation. CLI providers are never selected by ordinary `--model auto` or by the daemon.
 - Binary installed and on `PATH` (or set `CODEX_PATH`, `CLAUDE_PATH`, `GEMINI_PATH`, `AGENT_PATH`)
-- Provider authenticated (`codex login`, `claude auth`, `gemini` login flow, `agent login` or `CURSOR_API_KEY`)
+- Provider API key available in the environment. Each provider gets only its own key plus a small runtime allowlist; normal login files are intentionally hidden behind an empty temporary `HOME`.
 - Codex model selection defers to your local Codex CLI default when you use `--cli codex` or `--model cli/codex` without a model suffix
+- Inputs are passed as text whenever possible. A required image/file is copied into a private `0700` temporary workspace and removed after the run.
+- macOS uses `sandbox-exec`; Linux requires `bubblewrap` (`bwrap`). Unsupported or unavailable OS sandboxes fail closed.
 
 Quick smoke test:
 
 ```bash
 printf "Summarize CLI smoke input.\nOne short paragraph. Reply can be brief.\n" >/tmp/summarize-cli-smoke.txt
 
-summarize --cli codex --plain --timeout 2m /tmp/summarize-cli-smoke.txt
-summarize --cli claude --plain --timeout 2m /tmp/summarize-cli-smoke.txt
-summarize --cli gemini --plain --timeout 2m /tmp/summarize-cli-smoke.txt
-summarize --cli agent --plain --timeout 2m /tmp/summarize-cli-smoke.txt
+summarize --allow-agent-tools --cli codex --plain --timeout 2m /tmp/summarize-cli-smoke.txt
+summarize --allow-agent-tools --cli claude --plain --timeout 2m /tmp/summarize-cli-smoke.txt
+summarize --allow-agent-tools --cli gemini --plain --timeout 2m /tmp/summarize-cli-smoke.txt
+summarize --allow-agent-tools --cli agent --plain --timeout 2m /tmp/summarize-cli-smoke.txt
 ```
 
 Set explicit CLI allowlist/order:
@@ -263,13 +274,13 @@ Set explicit CLI allowlist/order:
 }
 ```
 
-Configure implicit auto CLI fallback:
+The legacy `cli.autoFallback` setting is retained for config compatibility but cannot activate a CLI backend by itself. A CLI run always requires both an explicit CLI selection and `--allow-agent-tools`:
 
 ```json
 {
   "cli": {
     "autoFallback": {
-      "enabled": true,
+      "enabled": false,
       "onlyWhenNoApiKeys": true,
       "order": ["codex", "gemini", "claude", "agent"]
     }
@@ -281,13 +292,7 @@ More details: [`docs/cli.md`](docs/cli.md)
 
 ### Auto model ordering
 
-`--model auto` builds candidate attempts from built-in rules (or your `model.rules` overrides).
-CLI attempts are prepended when:
-
-- `cli.enabled` is set (explicit allowlist/order), or
-- implicit auto selection is active and `cli.autoFallback` is enabled.
-
-Default fallback behavior: only when no API keys are configured, order `codex, gemini, claude, agent`, and remember/prioritize last successful provider (`~/.summarize/cli-state.json`).
+`--model auto` builds non-agentic API attempts from built-in rules (or your `model.rules` overrides). It never discovers or launches coding CLIs. Use `--allow-agent-tools --cli [provider]` or `--allow-agent-tools --model cli/<provider>` for an explicit CLI run.
 
 Set explicit CLI attempts:
 
@@ -297,7 +302,7 @@ Set explicit CLI attempts:
 }
 ```
 
-Disable implicit auto CLI fallback:
+Keep legacy implicit auto CLI fallback disabled:
 
 ```json
 {
@@ -305,7 +310,7 @@ Disable implicit auto CLI fallback:
 }
 ```
 
-Note: explicit `--model auto` does not trigger implicit auto CLI fallback unless `cli.enabled` is set.
+`cli.enabled` is only an allowlist/order for an explicitly requested CLI run; it does not change normal auto selection.
 
 ### Website extraction (Exa, Cloudflare, Firecrawl + Markdown)
 
@@ -467,7 +472,7 @@ Core keys:
     "claude": { "binary": "claude", "model": "" },
     "agent": { "binary": "agent", "model": "" },
     "autoFallback": {
-      "enabled": true,
+      "enabled": false,
       "onlyWhenNoApiKeys": true,
       "order": ["codex", "gemini", "claude", "agent"]
     }
