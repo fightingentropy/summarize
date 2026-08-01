@@ -20,6 +20,15 @@ const makeStub = (handler: (args: string[]) => { stdout?: string; stderr?: strin
   return execFileStub;
 };
 
+const runCliModelForTest = (options: Parameters<typeof runCliModel>[0]) =>
+  runCliModel({
+    ...options,
+    env: {
+      ...options.env,
+      [`SUMMARIZE_CLI_${options.provider.toUpperCase()}`]: process.execPath,
+    },
+  });
+
 describe("runCliModel", () => {
   it("allows only Claude Read tools without bypassing permissions", async () => {
     const seen: string[][] = [];
@@ -38,7 +47,7 @@ describe("runCliModel", () => {
         }),
       };
     });
-    const result = await runCliModel({
+    const result = await runCliModelForTest({
       provider: "claude",
       prompt: "Test",
       model: "sonnet",
@@ -77,7 +86,7 @@ describe("runCliModel", () => {
         }),
       };
     });
-    const result = await runCliModel({
+    const result = await runCliModelForTest({
       provider: "gemini",
       prompt: "Test",
       model: "gemini-3-flash-preview",
@@ -112,7 +121,7 @@ describe("runCliModel", () => {
       } as unknown as ReturnType<ExecFileFn>;
     }) as ExecFileFn;
 
-    await runCliModel({
+    await runCliModelForTest({
       provider: "gemini",
       prompt: "Test",
       model: "gemini-3-flash-preview",
@@ -132,7 +141,7 @@ describe("runCliModel", () => {
       seen.push(args);
       return { stdout: JSON.stringify({ result: "ok" }) };
     });
-    const result = await runCliModel({
+    const result = await runCliModelForTest({
       provider: "claude",
       prompt: "Test",
       model: null,
@@ -182,7 +191,7 @@ describe("runCliModel", () => {
       seen.push(args);
       return { stdout: JSON.stringify({ result: "ok" }) };
     });
-    const result = await runCliModel({
+    const result = await runCliModelForTest({
       provider: "agent",
       prompt: "Test",
       model: "gpt-5.2",
@@ -210,7 +219,7 @@ describe("runCliModel", () => {
       { provider: "agent", model: "gpt-5.2" },
     ];
     for (const { provider, model } of providers) {
-      const result = await runCliModel({
+      const result = await runCliModelForTest({
         provider,
         prompt: "Test",
         model,
@@ -225,7 +234,7 @@ describe("runCliModel", () => {
   });
 
   it("extracts result payloads from JSON array output", async () => {
-    const result = await runCliModel({
+    const result = await runCliModelForTest({
       provider: "agent",
       prompt: "Test",
       model: "gpt-5.2",
@@ -263,7 +272,7 @@ describe("runCliModel", () => {
       } as unknown as ReturnType<ExecFileFn>;
     }) as ExecFileFn;
 
-    const result = await runCliModel({
+    const result = await runCliModelForTest({
       provider: "codex",
       prompt: "Test",
       model: "gpt-5.2",
@@ -278,7 +287,7 @@ describe("runCliModel", () => {
 
   it("returns Codex stdout when present", async () => {
     const execFileImpl = makeStub(() => ({ stdout: "from stdout" }));
-    const result = await runCliModel({
+    const result = await runCliModelForTest({
       provider: "codex",
       prompt: "Test",
       model: "gpt-5.2",
@@ -307,7 +316,7 @@ describe("runCliModel", () => {
       ].join("\n"),
     }));
 
-    const result = await runCliModel({
+    const result = await runCliModelForTest({
       provider: "codex",
       prompt: "Test",
       model: "gpt-5.2",
@@ -341,7 +350,7 @@ describe("runCliModel", () => {
 
   it("falls back to plain text output", async () => {
     const execFileImpl = makeStub(() => ({ stdout: "plain text" }));
-    const result = await runCliModel({
+    const result = await runCliModelForTest({
       provider: "claude",
       prompt: "Test",
       model: "sonnet",
@@ -356,7 +365,7 @@ describe("runCliModel", () => {
 
   it("falls back to plain text when JSON lacks result", async () => {
     const execFileImpl = makeStub(() => ({ stdout: JSON.stringify({ ok: true }) }));
-    const result = await runCliModel({
+    const result = await runCliModelForTest({
       provider: "claude",
       prompt: "Test",
       model: "sonnet",

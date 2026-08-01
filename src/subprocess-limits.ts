@@ -59,7 +59,10 @@ export function prepareResourceLimitedCommand({
     'exec "$@"',
   ].join("\n");
   return {
-    command: "/bin/sh",
+    // Debian and Ubuntu link /bin/sh to dash, whose `ulimit` does not support
+    // the process-count limit used above. Linux release targets require bash
+    // so every configured limit is applied fail closed instead of exiting 125.
+    command: process.platform === "linux" ? "/bin/bash" : "/bin/sh",
     args: ["-c", script, "summarize-subprocess-limit", command, ...args],
   };
 }
