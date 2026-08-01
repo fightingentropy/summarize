@@ -17,7 +17,7 @@ describe("subprocess resource limits", () => {
       return;
     }
 
-    expect(launch.command).toBe("/bin/sh");
+    expect(launch.command).toBe(process.platform === "linux" ? "/bin/bash" : "/bin/sh");
     expect(launch.args[1]).toContain("ulimit -t 25");
     if (process.platform === "darwin") {
       expect(launch.args[1]).toContain("memory_limit_kb=1048576");

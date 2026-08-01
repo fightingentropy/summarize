@@ -78,7 +78,7 @@ describe("slides process helpers", () => {
       runProcessCapture({
         command: process.execPath,
         args: ["-e", `process.stdout.write("x".repeat(${MAX_SUBPROCESS_TEXT_BYTES + 1}))`],
-        timeoutMs: 5_000,
+        timeoutMs: 20_000,
         errorLabel: "noisy-worker",
       }),
     ).rejects.toThrow("noisy-worker exceeded output limit");

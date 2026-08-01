@@ -2,9 +2,18 @@ import type { ChildProcess } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { runCliModel } from "../src/llm/cli.js";
 
+const runCliModelForTest = (options: Parameters<typeof runCliModel>[0]) =>
+  runCliModel({
+    ...options,
+    env: {
+      ...options.env,
+      [`SUMMARIZE_CLI_${options.provider.toUpperCase()}`]: process.execPath,
+    },
+  });
+
 describe("llm/cli extra branches", () => {
   it("parses the last JSON object when stdout includes a preface", async () => {
-    const result = await runCliModel({
+    const result = await runCliModelForTest({
       provider: "gemini",
       prompt: "hi",
       model: "gemini-2.0",
@@ -32,7 +41,7 @@ describe("llm/cli extra branches", () => {
   });
 
   it("falls back to the last JSON object when the first looks like JSON but is invalid", async () => {
-    const result = await runCliModel({
+    const result = await runCliModelForTest({
       provider: "claude",
       prompt: "hi",
       model: "claude-sonnet",

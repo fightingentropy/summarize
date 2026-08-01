@@ -159,7 +159,7 @@ describe("runCliModel", () => {
 
   it("rejects configured arguments that can alter the provider security policy", async () => {
     await expect(
-      runCliModel({
+      runCliModelForTest({
         provider: "claude",
         prompt: "Test",
         model: "sonnet",
@@ -172,7 +172,7 @@ describe("runCliModel", () => {
     ).rejects.toThrow(/Unsafe CLI provider extra argument/i);
 
     await expect(
-      runCliModel({
+      runCliModelForTest({
         provider: "gemini",
         prompt: "Test",
         model: "flash",
@@ -335,7 +335,7 @@ describe("runCliModel", () => {
   it("throws when Codex returns no output file and empty stdout", async () => {
     const execFileImpl = makeStub(() => ({ stdout: "" }));
     await expect(
-      runCliModel({
+      runCliModelForTest({
         provider: "codex",
         prompt: "Test",
         model: "gpt-5.2",
@@ -381,7 +381,7 @@ describe("runCliModel", () => {
   it("throws on empty output", async () => {
     const execFileImpl = makeStub(() => ({ stdout: "   " }));
     await expect(
-      runCliModel({
+      runCliModelForTest({
         provider: "gemini",
         prompt: "Test",
         model: "gemini-3-flash-preview",
@@ -403,7 +403,7 @@ describe("runCliModel", () => {
     }) as ExecFileFn;
 
     await expect(
-      runCliModel({
+      runCliModelForTest({
         provider: "claude",
         prompt: "Test",
         model: "sonnet",
